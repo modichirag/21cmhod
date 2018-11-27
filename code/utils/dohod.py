@@ -55,6 +55,52 @@ def make_galcat(fofcat, ofolder='', z=0, sortcen=False, sortsat=False, sigc=0.21
     return galcat
 
 
+def Az(z):
+    '''Taken from table 6 of arxiv:1804.09180'''
+    zz = np.array((0, 1, 2, 3, 4, 5))
+    yy = np.ones_like(zz)
+    return np.interp(z, zz, yy)
+
+def alphaz(z):
+    '''Taken from table 6 of arxiv:1804.09180'''
+    zz = np.array((0, 1, 2, 3, 4, 5))
+    yy = np.array((0.49, 0.76, 0.80, 0.95, 0.94, 0.90))
+    return np.interp(z, zz, yy)
+
+def M0z(z, loginterp=True):
+    '''Taken from table 6 of arxiv:1804.09180'''
+    zz = np.array((0, 1, 2, 3, 4, 5))
+    yy = np.array((2.1e9, 4.6e8, 4.9e8, 9.2e7, 6.4e7, 9.5e7))
+    if loginterp: return 10**np.interp(z, zz, np.log10(yy))
+    else: return np.interp(z, zz, yy)
+
+def Mminz(z, loginterp=True):
+    '''Taken from table 6 of arxiv:1804.09180'''
+    zz = np.array((0, 1, 2, 3, 4, 5))
+    yy = np.array((5.2e10, 2.6e10, 2.1e10, 4.8e9, 2.1e9, 1.9e9))
+    if loginterp: return 10**np.interp(z, zz, np.log10(yy))
+    else: return np.interp(z, zz, yy)
+
+
+def assignH1mass(halos, z=0):
+    '''Assign H1 mass based on expresion in overleaf Eq. 4.1'''
+    #A = Az(z)
+    mmin = Mminz(z)
+    m0 = M0z(z)
+    alpha = alphaz(z)
+    
+    mass = halos['Mass'].compute()
+    xx = mass/mmin
+    mh1 = m0*xx**alpha * np.exp(-1/xx)
+    print(mh1.size)
+    print(halos.size)
+
+    return mh1
+
+
+
+
+
     ### Assigning masses to galaxies below this
     ## We don't need it right now
 #    Mthresh = icdf.mstarsat(fofcat['Mass'].compute()[-1])
@@ -75,40 +121,3 @@ def make_galcat(fofcat, ofolder='', z=0, sortcen=False, sortsat=False, sigc=0.21
 #    print('Data saved at %s'%(ofolder + fname))
 #    galcat.save(ofolder+fname, colsave)
 #
-
-def Az(z):
-    '''Taken from table 6 of arxiv:1804.09180'''
-    zz = np.array((0, 1, 2, 3, 4, 5))
-    yy = np.ones_like(zz)
-    return np.interp(z, zz, yy)
-
-def alphaz(z):
-    '''Taken from table 6 of arxiv:1804.09180'''
-    zz = np.array((0, 1, 2, 3, 4, 5))
-    yy = np.array((0.49, 0.76, 0.80, 0.95, 0.94, 0.90))
-    return np.interp(z, zz, yy)
-
-def M0z(z):
-    '''Taken from table 6 of arxiv:1804.09180'''
-    zz = np.array((0, 1, 2, 3, 4, 5))
-    yy = np.array((2.1e9, 4.6e8, 4.9e8, 9.2e7, 6.4e7, 9.5e7))
-    return np.interp(z, zz, yy)
-
-def Mminz(z):
-    '''Taken from table 6 of arxiv:1804.09180'''
-    zz = np.array((0, 1, 2, 3, 4, 5))
-    yy = np.array((5.2e10, 2.6e10, 2.1e10, 4.8e9, 2.1e9, 1.9e9))
-    return np.interp(z, zz, yy)
-
-
-def assignH1mass(halos, z=0):
-    '''Assign H1 mass based on expresion in overleaf Eq. 4.1'''
-    A = Az(z)
-    mmin = Mminz(z)
-    m0 = M0z(z)
-    alpha = alphaz(z)
-    
-    mass = halos['Mass'].compute()
-    mh1 = A*mass**alpha * np.exp(-mmin/mass)
-    
-    return mh1
