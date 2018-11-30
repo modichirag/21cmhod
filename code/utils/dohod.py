@@ -55,39 +55,63 @@ def make_galcat(fofcat, ofolder='', z=0, sortcen=False, sortsat=False, sigc=0.21
     return galcat
 
 
-def Az(z):
+def Az(z, mwfits=False):
     '''Taken from table 6 of arxiv:1804.09180'''
     zz = np.array((0, 1, 2, 3, 4, 5))
     yy = np.ones_like(zz)
     return np.interp(z, zz, yy)
 
-def alphaz(z):
+def alphaz(z, mwfits=False):
     '''Taken from table 6 of arxiv:1804.09180'''
-    zz = np.array((0, 1, 2, 3, 4, 5))
-    yy = np.array((0.49, 0.76, 0.80, 0.95, 0.94, 0.90))
-    return np.interp(z, zz, yy)
+    if mwfits:
+        return (1+2*z)/(2+2*z)
+    else:
+        zz = np.array((0, 1, 2, 3, 4, 5))
+        yy = np.array((0.49, 0.76, 0.80, 0.95, 0.94, 0.90))
+        return np.interp(z, zz, yy)
 
-def M0z(z, loginterp=True):
+def M0z(z, loginterp=True, mwfits=False):
     '''Taken from table 6 of arxiv:1804.09180'''
     zz = np.array((0, 1, 2, 3, 4, 5))
     yy = np.array((2.1e9, 4.6e8, 4.9e8, 9.2e7, 6.4e7, 9.5e7))
     if loginterp: return 10**np.interp(z, zz, np.log10(yy))
     else: return np.interp(z, zz, yy)
 
-def Mminz(z, loginterp=True):
+def Mminz(z, loginterp=True, mwfits=False):
     '''Taken from table 6 of arxiv:1804.09180'''
-    zz = np.array((0, 1, 2, 3, 4, 5))
-    yy = np.array((5.2e10, 2.6e10, 2.1e10, 4.8e9, 2.1e9, 1.9e9))
-    if loginterp: return 10**np.interp(z, zz, np.log10(yy))
-    else: return np.interp(z, zz, yy)
+    if mwfits:
+        zp1 = z+1
+        return 1e10*(7.5-2.7*zp1+0.25*zp1**2)
+    else:
+        zz = np.array((0, 1, 2, 3, 4, 5))
+        yy = np.array((5.2e10, 2.6e10, 2.1e10, 4.8e9, 2.1e9, 1.9e9))
+        if loginterp: return 10**np.interp(z, zz, np.log10(yy))
+        else: return np.interp(z, zz, yy)
 
 
-def assignH1mass(halos, z=0):
+def martinfits():
+    zp1 = 1.0/aa
+    zz  = zp1-1    
+    # Set the parameters of the HOD, using the "simple" form.
+    #   MHI ~ M0  x^alpha Exp[-1/x]       x=Mh/Mmin
+    # from the Appendix of https://arxiv.org/pdf/1804.09180.pdf, Table 6.    
+    # Fits valid for 0<z<6:
+    
+    mcut= 1e10*(7.5-2.7*zp1+0.25*zp1**2)
+    alp = (1+2*zz)/(2+2*zz)
+    
+    # Work out the HI mass/weight per halo -- ignore prefactor.    
+    xx  = mhalo/mcut+1e-10
+    mHI = xx**alp * np.exp(-1/xx)
+    return mHI
+    
+
+def assignH1mass(halos, z=0, mwfits=False):
     '''Assign H1 mass based on expresion in overleaf Eq. 4.1'''
     #A = Az(z)
-    mmin = Mminz(z)
-    m0 = M0z(z)
-    alpha = alphaz(z)
+    mmin = Mminz(z, mwfits=mwfits)
+    m0 = M0z(z, mwfits=mwfits)
+    alpha = alphaz(z, mwfits=mwfits)
     
     mass = halos['Mass'].compute()
     xx = mass/mmin
