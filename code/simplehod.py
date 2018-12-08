@@ -2,15 +2,19 @@ import numpy as np
 from pmesh.pm import ParticleMesh
 from nbodykit.lab import BigFileCatalog, BigFileMesh, FFTPower
 from nbodykit.source.mesh.field import FieldMesh
+from nbodykit.lab import SimulationBox2PCF, FFTCorr
+
 import sys
 sys.path.append('./utils')
 import tools, dohod             # 
+from time import time
 
 #Global, fixed things
 scratch = '/global/cscratch1/sd/yfeng1/m3127/'
 project = '/project/projectdirs/m3127/H1mass/'
 cosmodef = {'omegam':0.309167, 'h':0.677, 'omegab':0.048}
 aafiles = [0.1429, 0.1538, 0.1667, 0.1818, 0.2000, 0.2222, 0.2500, 0.2857, 0.3333]
+#aafiles = aafiles[4:]
 zzfiles = [round(tools.atoz(aa), 2) for aa in aafiles]
 
 #Paramteres
@@ -85,7 +89,7 @@ def measurepk(nc=512):
     for i, aa in enumerate(aafiles):
         ofolder = project + '/%s/fastpm_%0.4f/'%(sim, aa)
         zz = zzfiles[i]
-        print(zz)
+        print('redshift = ', zz)
         dm = BigFileMesh(project + sim + '/fastpm_%0.4f/'%aa + '/dmesh_N%04d'%nc, '1').paint()
         halos = BigFileCatalog(project + sim + '/fastpm_%0.4f/halocat/'%aa)
         hmass, h1mass = halos["Mass"].compute(), halos['H1mass'].compute()
@@ -117,13 +121,77 @@ def measurepk(nc=512):
         savebinned(ofolder+'pkh1massxm.txt', pkh1m, header='k, P(k), Nmodes')
 
 
+
+def measurexi(nc, edges):
+    '''plot the power spectrum of halos and H1 on 'nc' grid'''
+
+
+    for i, aa in enumerate(aafiles):
+
+        ofolder = project + '/%s/fastpm_%0.4f/'%(sim, aa)
+        
+        dm = BigFileCatalog(scratch  + sim + '/fastpm_%0.4f/'%aa , dataset='1')
+        halos = BigFileCatalog(project + sim + '/fastpm_%0.4f/halocat/'%aa)
+        h1 = BigFileCatalog(project + sim + '/fastpm_%0.4f/halocat/'%aa)
+        rank = dm.comm.rank
+        zz = zzfiles[i]
+        if rank == 0 : 
+            print('redshift = ', zz)
+            print('Number of dm particles = ', dm.csize)
+            print('Number of halos particles = ', h1.csize)
+            
+        for cat in [dm, halos, h1]: # nbodykit bug in SimBox2PCF that asserts boxsize
+            if len(cat.attrs['BoxSize'] == 1): 
+                bs = cat.attrs['BoxSize'][0]
+                cat.attrs['BoxSize'] = [bs, bs, bs]
+        if rank == 0 : print('Create weight array')
+        halos['Weight'] = halos['Mass']
+        h1['Weight'] = h1['H1mass']
+        dm['Weight'] = np.ones(dm['Position'].shape[0])
+
+        if rank == 0 : print("Correlation function for edges :\n", edges)
+        start=time()
+        xim = SimulationBox2PCF('1d',  data1=dm, edges=edges)
+        end=time()
+        if rank == 0 : print('Time for matter = ', end-start)
+        start=end
+        xih = SimulationBox2PCF('1d',  data1=halos, edges=edges)
+        end=time()
+        if rank == 0 : print('Time for halos = ', end-start)
+        start=end
+        ximxh = SimulationBox2PCF('1d',  data1=halos, data2=dm, edges=edges)
+        end=time()
+        if rank == 0 : print('Time for matter x halos = ', end-start)
+        start=end
+        #Others mass weighted
+        xihmass = SimulationBox2PCF('1d',  data1=halos, weight='Weight', edges=edges)
+        xih1mass = SimulationBox2PCF('1d',  data1=h1, weight='Weight', edges=edges)
+        ximxhmass = SimulationBox2PCF('1d',  data1=halos, data2=dm, weight='Weight', edges=edges)
+        ximxh1mass = SimulationBox2PCF('1d',  data1=h1, data2=dm, weight='Weight', edges=edges)
+        
+
+        def savebinned(path, binstat, header):
+            r, xi = binstat.corr['r'].real, binstat.corr['corr'].real
+            if rank == 0:
+                np.savetxt(path, np.stack((r, xi), axis=1), header=header)
+            
+        savebinned(ofolder+'xihpos.txt', xih, header='r, xi(r)')
+        savebinned(ofolder+'ximatter.txt', xim, header='r, xi(r)')
+        savebinned(ofolder+'xihmass.txt', xihmass, header='r, xi(r)')
+        savebinned(ofolder+'xih1mass.txt', xih1mass, header='r, xi(r)')
+        savebinned(ofolder+'ximxhmass.txt', ximxhmass, header='r, xi(r)')
+        savebinned(ofolder+'ximxh1mass.txt', ximxh1mass, header='r, xi(r)')
+
+
     
 
 if __name__=="__main__":
 
     for aa in aafiles:
-        print(aa)
+        pass
+        #print(aa)
         #assignH1mass(aa=aa)
         #savecatalogmesh(bs=bs, nc=256, aa=aa)
-    measurepk(nc=256)
+    edges = np.logspace(0, 1.8, 30)
+    measurexi(nc=256, edges=edges)
     #make_galcat(aa=0.2000)

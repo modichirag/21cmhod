@@ -1,0 +1,35 @@
+#!/bin/bash
+
+#SBATCH -J halobias
+#SBATCH -N 4
+#SBATCH -p debug
+#SBATCH -t 00:30:00
+#SBATCH -o ./log_slurm/halobias.o%j
+#SBATCH -L cscratch1
+#SBATCH -C haswell
+#SBATCH -D /global/homes/c/chmodi/Programs/21cm/
+
+module unload darshan
+module unload python
+
+module swap PrgEnv-intel PrgEnv-gnu
+module swap gcc gcc/5.3.0
+
+source /usr/common/contrib/bccp/conda-activate.sh 3.5
+export OMP_NUM_THREADS=1
+
+echo 'Finally starting'
+
+bs=2048
+aa=(0.0909 0.1111 0.1667 0.2000 0.2500)
+
+for i in 0.0909 0.1111 0.1667 0.2000 0.2500 0.2857; do
+    echo Doing for $i
+    time srun -n 128 python halobias.py ./$bs-test-0.168/power_$i.txt --verbose --nmesh=256 --nn=10 --with-plot /global/cscratch1/sd/yfeng1/m3127/highres/$bs-test-0.168/fastpm_$i/ --dataset=1 -- /global/cscratch1/sd/yfeng1/m3127/highres/$bs-test-0.168/fof_$i/ --dataset=LL-0.168
+done
+#
+
+#bs=8192
+#aa=0.2500
+
+#time srun -n 128  python halobias.py ./$bs-test/power_$i.txt --verbose --nmesh=256 --nn=10 --with-plot /global/cscratch1/sd/yfeng1/m3127/highres/$bs-test/fastpm_$aa/ --dataset=1 -- /global/cscratch1/sd/yfeng1/m3127/highres/$bs-test/fof_$aa/ --dataset=LL-0.200
