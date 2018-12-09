@@ -20,8 +20,8 @@ zzfiles = [round(tools.atoz(aa), 2) for aa in aafiles]
 #Paramteres
 #Maybe set up to take in as args file?
 bs, nc = 256, 256
-ncsim, sim, prefix = 256, 'lowres/%d-9100-fixed'%256, 'lowres'
-#ncsim, sim, prefix = 2560, 'highres/%d-9100-fixed'%2560, 'highres'
+#ncsim, sim, prefix = 256, 'lowres/%d-9100-fixed'%256, 'lowres'
+ncsim, sim, prefix = 2560, 'highres/%d-9100-fixed'%2560, 'highres'
 
 
 
@@ -192,6 +192,6 @@ if __name__=="__main__":
         #print(aa)
         #assignH1mass(aa=aa)
         #savecatalogmesh(bs=bs, nc=256, aa=aa)
-    edges = np.logspace(0, 1.8, 30)
+    edges = np.logspace(0, 1.5, 30)
     measurexi(nc=256, edges=edges)
     #make_galcat(aa=0.2000)

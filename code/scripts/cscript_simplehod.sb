@@ -1,9 +1,9 @@
 #!/bin/bash
 
 #SBATCH -J simphod
-#SBATCH -N 6
-#SBATCH -p debug
-#SBATCH -t 00:30:00
+#SBATCH -N 16
+#SBATCH -p regular
+#SBATCH -t 02:00:00
 #SBATCH -o ./log_slurm/simphod.o%j
 #SBATCH -L cscratch1
 #SBATCH -C haswell
@@ -22,4 +22,4 @@ bcast-pip -U --no-deps https://github.com/bccp/nbodykit/archive/master.zip
 
 echo 'Finally starting'
 
-time srun -n 192 python -u simplehod.py
+time srun -n 512 python -u simplehod.py
