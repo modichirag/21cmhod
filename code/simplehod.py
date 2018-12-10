@@ -3,6 +3,7 @@ from pmesh.pm import ParticleMesh
 from nbodykit.lab import BigFileCatalog, BigFileMesh, FFTPower
 from nbodykit.source.mesh.field import FieldMesh
 from nbodykit.lab import SimulationBox2PCF, FFTCorr
+import os
 
 import sys
 sys.path.append('./utils')
@@ -109,8 +110,9 @@ def measurepk(nc=512):
         pkhpm = FFTPower(hpmesh/hpmesh.cmean(), second=dm/dm.cmean(), mode='1d').power
 
         def savebinned(path, binstat, header):
-            k, p, modes = binstat['k'].real, binstat['power'].real, binstat['modes'].real
-            np.savetxt(path, np.stack((k, p, modes), axis=1), header=header)
+            if halos.comm.rank == 0:
+                k, p, modes = binstat['k'].real, binstat['power'].real, binstat['modes'].real
+                np.savetxt(path, np.stack((k, p, modes), axis=1), header=header)
             
         savebinned(ofolder+'pkhpos.txt', pkhp, header='k, P(k), Nmodes')
         savebinned(ofolder+'pkhmass.txt', pkh, header='k, P(k), Nmodes')  
@@ -122,32 +124,48 @@ def measurepk(nc=512):
 
 
 
-def measurexi(nc, edges):
-    '''plot the power spectrum of halos and H1 on 'nc' grid'''
+def measurexi(N, edges):
+    '''plot the power spectrum of halos and H1 with subsampling'''
 
 
     for i, aa in enumerate(aafiles):
 
-        ofolder = project + '/%s/fastpm_%0.4f/'%(sim, aa)
-        
         dm = BigFileCatalog(scratch  + sim + '/fastpm_%0.4f/'%aa , dataset='1')
         halos = BigFileCatalog(project + sim + '/fastpm_%0.4f/halocat/'%aa)
         h1 = BigFileCatalog(project + sim + '/fastpm_%0.4f/halocat/'%aa)
+
+        for cat in [dm, halos, h1]: # nbodykit bug in SimBox2PCF that asserts boxsize
+            cat.attrs['BoxSize'] = np.broadcast_to(cat.attrs['BoxSize'], 3)
+
+        rng = np.random.RandomState(halos.comm.rank)
         rank = dm.comm.rank
+
         zz = zzfiles[i]
         if rank == 0 : 
             print('redshift = ', zz)
             print('Number of dm particles = ', dm.csize)
             print('Number of halos particles = ', h1.csize)
             
-        for cat in [dm, halos, h1]: # nbodykit bug in SimBox2PCF that asserts boxsize
-            if len(cat.attrs['BoxSize'] == 1): 
-                bs = cat.attrs['BoxSize'][0]
-                cat.attrs['BoxSize'] = [bs, bs, bs]
+        def subsampler(cat, rng, N, rmax):
+            # subsample such that we have at most N particles to rmax
+            nbar = (cat.csize / cat.attrs['BoxSize'].prod())
+            ratio = (N / rmax ** 3) / nbar
+            mask = rng.uniform(size=cat.size) < ratio
+            cat1 = cat[mask]
+
+            if rank == 0:
+                print('truncating catalog from %d to %d' % (cat.csize, cat1.csize))
+            return cat1
+
         if rank == 0 : print('Create weight array')
+
+        halos = subsampler(halos, rng, N, edges.max())
+        h1 = subsampler(h1, rng, N, edges.max())
+        dm = subsampler(dm, rng, N, edges.max())
+
         halos['Weight'] = halos['Mass']
         h1['Weight'] = h1['H1mass']
-        dm['Weight'] = np.ones(dm['Position'].shape[0])
+        dm['Weight'] = np.ones(dm.size)
 
         if rank == 0 : print("Correlation function for edges :\n", edges)
         start=time()
@@ -163,6 +181,7 @@ def measurexi(nc, edges):
         end=time()
         if rank == 0 : print('Time for matter x halos = ', end-start)
         start=end
+
         #Others mass weighted
         xihmass = SimulationBox2PCF('1d',  data1=halos, weight='Weight', edges=edges)
         xih1mass = SimulationBox2PCF('1d',  data1=h1, weight='Weight', edges=edges)
@@ -173,8 +192,14 @@ def measurexi(nc, edges):
         def savebinned(path, binstat, header):
             r, xi = binstat.corr['r'].real, binstat.corr['corr'].real
             if rank == 0:
+                try:
+                    os.makedirs(os.path.dirname(path))
+                except IOError:
+                    pass
                 np.savetxt(path, np.stack((r, xi), axis=1), header=header)
             
+        ofolder = project + '/%s/fastpm_%0.4f/ss-%d/' % (sim, aa, N)
+        
         savebinned(ofolder+'xihpos.txt', xih, header='r, xi(r)')
         savebinned(ofolder+'ximatter.txt', xim, header='r, xi(r)')
         savebinned(ofolder+'xihmass.txt', xihmass, header='r, xi(r)')
@@ -192,6 +217,8 @@ if __name__=="__main__":
         #print(aa)
         #assignH1mass(aa=aa)
         #savecatalogmesh(bs=bs, nc=256, aa=aa)
-    edges = np.logspace(0, 1.5, 30)
-    measurexi(nc=256, edges=edges)
+    edges = np.logspace(np.log10(0.5), np.log10(20), 10)
+    # use 1000 particles up to (20 Mpc/h) ** 3 volume;
+    # looks good enough?
+    measurexi(N=1000, edges=edges)
     #make_galcat(aa=0.2000)
