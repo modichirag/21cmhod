@@ -1,0 +1,17 @@
+# OmegaHI values taken from Table 5 of Crighton+15.
+# These use the rho_crit(z=0) definition, so you need
+# to divide by E^2(z) for LCDM(0.3) to get "normal" Omega's.
+#
+#  z	10^3 OmHI	1-sigma
+0.0	0.375		0.061
+0.1	0.33		0.05
+0.2	0.34		0.09
+0.24	0.70		0.31
+1.25	0.86		0.29
+2.15	0.872		0.044
+2.45	0.765		0.035
+2.75	0.914		0.044
+3.05	0.966		0.070
+3.35	1.11		0.11
+3.90	0.82		0.30
+4.70	0.77		0.30

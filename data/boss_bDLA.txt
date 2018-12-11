@@ -1,0 +1,7 @@
+# b_{DLA} data from Table 2 of Perez-Rafols et al. (2018; MNRAS 473, 3019).
+# We see no evidence of scale-dependent bias at z~2ish down to 5Mpc/h, so
+# we use the r_{min}=5Mpc/h data.
+# z	b_{DLA}		err
+2.2 	2.36		0.17
+2.4	1.90		0.18
+3.0	1.92		0.20
