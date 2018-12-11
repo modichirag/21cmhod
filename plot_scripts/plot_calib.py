@@ -14,10 +14,19 @@ def make_calib_plot():
     """Does the work of making the calibration figure."""
     # Now make the figure.
     fig,ax = plt.subplots(1,2,figsize=(6,2.5))
-    # The left hand panel is the CDDF.
-    ax[0].plot([0,1],[1,0])
-    ax[0].set_xlabel(r'$N_{HI}\quad [{\rm cm}^{-2}]$')
-    ax[0].set_ylabel(r'$N(>N_{HI})$')
+    # The left hand panel is DLA bias vs. redshift.
+    bDLA = np.loadtxt("boss_bDLA.txt")
+    ax[0].errorbar(bDLA[:,0],bDLA[:,1],yerr=bDLA[:,2],fmt='o')
+    ax[0].fill_between([1.5,3.5],[1.99-0.11,1.99-0.11],\
+                                 [1.99+0.11,1.99+0.11],\
+                       color='lightgrey',alpha=0.5)
+    ax[0].set_xlabel(r'$z$')
+    ax[0].set_ylabel(r'$b_{DLA}(z)$')
+    # Tidy up.
+    ax[0].set_xlim(1.95,3.25)
+    ax[0].set_ylim(1,3)
+    ax[0].set_xscale('linear')
+    ax[0].set_yscale('linear')
     # The right hand panel is OmegaHI vs. z.
     # Read in the data and convert to "normal" OmegaHI convention.
     dd = np.loadtxt("omega_HI_obs.txt")
