@@ -21,8 +21,8 @@ zzfiles = [round(tools.atoz(aa), 2) for aa in aafiles]
 #Paramteres
 #Maybe set up to take in as args file?
 bs, nc = 256, 256
-#ncsim, sim, prefix = 256, 'lowres/%d-9100-fixed'%256, 'lowres'
-ncsim, sim, prefix = 2560, 'highres/%d-9100-fixed'%2560, 'highres'
+ncsim, sim, prefix = 256, 'lowres/%d-9100-fixed'%256, 'lowres'
+#ncsim, sim, prefix = 2560, 'highres/%d-9100-fixed'%2560, 'highres'
 
 
 
@@ -33,6 +33,7 @@ def readincatalog(aa, matter=False):
     mp = halocat.attrs['MassTable'][1]*1e10
     print('Mass of particle is = %0.2e'%mp)
     halocat['Mass'] = halocat['Length'] * mp
+    print(halocat['Mass'][:5].compute()/1e10)
     halocat['Position'] = halocat['Position']%bs # Wrapping positions assuming periodic boundary conditions
     if matter:
         return dmcat, halocat
@@ -215,10 +216,11 @@ if __name__=="__main__":
     for aa in aafiles:
         pass
         #print(aa)
+        readincatalog(aa=aa)
         #assignH1mass(aa=aa)
         #savecatalogmesh(bs=bs, nc=256, aa=aa)
     edges = np.logspace(np.log10(0.5), np.log10(20), 10)
     # use 1000 particles up to (20 Mpc/h) ** 3 volume;
     # looks good enough?
-    measurexi(N=1000, edges=edges)
+    #measurexi(N=1000, edges=edges)
     #make_galcat(aa=0.2000)

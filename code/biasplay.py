@@ -20,9 +20,9 @@ zzfiles = [round(tools.atoz(aa), 2) for aa in aafiles]
 
 #Paramteres
 #Maybe set up to take in as args file?
-bs, nc = 256, 256
-ncsim, sim, prefix = 256, 'lowres/%d-9100-fixed'%256, 'lowres'
-#ncsim, sim, prefix = 2560, 'highres/%d-9100-fixed'%2560, 'highres'
+bs, nc = 256, 512
+#ncsim, sim, prefix = 256, 'lowres/%d-9100-fixed'%256, 'lowres'
+ncsim, sim, prefix = 2560, 'highres/%d-9100-fixed'%2560, 'highres'
 
 
 
@@ -40,28 +40,28 @@ def readincatalog(aa, matter=False):
 
 
 
-def HI_mass(mhalo,aa):
-    """Makes a 21cm "mass" from a box of halo masses."""
-    print('Assigning weights')
-    zp1 = 1.0/aa
-    zz  = zp1-1
-    # Set the parameters of the HOD, using the "simple" form.
-    #   MHI ~ M0  x^alpha Exp[-1/x]       x=Mh/Mmin
-    # from the Appendix of https://arxiv.org/pdf/1804.09180.pdf, Table 6.
-    # Fits valid for 1<z<6:
-    mcut= 1e10*(6.11-1.99*zp1+0.165*zp1**2)
-    alp = (1+2*zz)/(2+2*zz)
-    # Work out the HI mass/weight per halo -- ignore prefactor.
-    xx  = mhalo/mcut+1e-10
-    mHI = xx**alp * np.exp(-1/xx)
-    # Scale to some standard number in the right ball-park.
-    #mHI*= 1.4e9*np.exp(-1.9*zp1+0.1*zp1**2)
-    # Scale to some standard number in the right ball-park. Second mail
-    mHI*= 2e9*np.exp(-1.9*zp1+0.07*zp1**2)
-    # Return the HI masses.
-    return(mHI)
-    #
-
+#def HI_mass(mhalo,aa):
+#    """Makes a 21cm "mass" from a box of halo masses."""
+#    print('Assigning weights')
+#    zp1 = 1.0/aa
+#    zz  = zp1-1
+#    # Set the parameters of the HOD, using the "simple" form.
+#    #   MHI ~ M0  x^alpha Exp[-1/x]       x=Mh/Mmin
+#    # from the Appendix of https://arxiv.org/pdf/1804.09180.pdf, Table 6.
+#    # Fits valid for 1<z<6:
+#    mcut= 1e10*(6.11-1.99*zp1+0.165*zp1**2)
+#    alp = (1+2*zz)/(2+2*zz)
+#    # Work out the HI mass/weight per halo -- ignore prefactor.
+#    xx  = mhalo/mcut+1e-10
+#    mHI = xx**alp * np.exp(-1/xx)
+#    # Scale to some standard number in the right ball-park.
+#    #mHI*= 1.4e9*np.exp(-1.9*zp1+0.1*zp1**2)
+#    # Scale to some standard number in the right ball-park. Second mail
+#    mHI*= 2e9*np.exp(-1.9*zp1+0.07*zp1**2)
+#    # Return the HI masses.
+#    return(mHI)
+#    #
+#
 
 def saveH1cat(aa, h1mass, halocat, fname, ofolder=None):
     '''save catalog...'''
@@ -88,7 +88,7 @@ def fiddlebias(aa, savecat=False, saveb=False, catname='h1cat', bname='h1bias.tx
     halocat = readincatalog(aa, matter=False)
     hpos = halocat['Position']
     hmass = halocat['Mass']
-    h1mass = HI_mass(hmass, aa)
+    h1mass = dohod.HI_mass(hmass, aa)
     dm = BigFileMesh(project + sim + '/fastpm_%0.4f/'%aa + '/dmesh_N%04d'%nc, '1').paint()
     if ofolder is None:
         ofolder = project + '/%s/fastpm_%0.4f/'%(sim, aa)
