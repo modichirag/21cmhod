@@ -107,7 +107,7 @@ def martinfits():
     
 
 
-def HI_mass(mhalo,aa):
+def HI_mass(mhalo,aa, toret=None):
     """Makes a 21cm "mass" from a box of halo masses."""
     zp1 = 1.0/aa
     zz  = zp1-1
@@ -115,15 +115,22 @@ def HI_mass(mhalo,aa):
     #   MHI ~ M0  x^alpha Exp[-1/x]       x=Mh/Mmin
     # from the Appendix of https://arxiv.org/pdf/1804.09180.pdf, Table 6.
     # Fits valid for 1<z<6:
+    
     mcut= 1e10*(6.11-1.99*zp1+0.165*zp1**2)
+    if toret == 'mcut': return mcut
     alp = (1+2*zz)/(2+2*zz)
+    if toret == 'alpha': return alp
+    
+    # Scale to some standard number in the right ball-park.
+    #nrom = 1.4e9*np.exp(-1.9*zp1+0.1*zp1**2)
+    # Scale to some standard number in the right ball-park. Second mail
+    norm = 2e9*np.exp(-1.9*zp1+0.07*zp1**2) 
+    if toret == 'norm': return  norm
+    
     # Work out the HI mass/weight per halo -- ignore prefactor.
     xx  = mhalo/mcut+1e-10
     mHI = xx**alp * np.exp(-1/xx)
-    # Scale to some standard number in the right ball-park.
-    #mHI*= 1.4e9*np.exp(-1.9*zp1+0.1*zp1**2)
-    # Scale to some standard number in the right ball-park. Second mail
-    mHI*= 2e9*np.exp(-1.9*zp1+0.07*zp1**2)
+    mHI*= norm
     # Return the HI masses.
     return(mHI)
     #

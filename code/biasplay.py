@@ -124,6 +124,47 @@ def fiddlebias(aa, savecat=False, saveb=False, catname='h1cat', bname='h1bias.tx
     return k, b1h1, b1h1sq
 
 
+
+def fiddlebiasgal(aa, suff, nc=nc, saveb=False, bname='h1bias.txt', ofolder=None):
+    
+    print('Read in catalogs')
+    cencat = BigFileCatalog(project + sim + '/fastpm_%0.4f/cencat'%aa+suff)
+    satcat = BigFileCatalog(project + sim + '/fastpm_%0.4f/satcat'%aa+suff)
+    #halocat = readincatalog(aa, matter=False)
+    cpos, spos = cencat['Position'], satcat['Position']
+    ch1mass, sh1mass = cencat['H1mass'], satcat['H1mass']
+    #print(cpos.shape, spos.shape)
+    pos = np.concatenate((cpos, spos), axis=0)
+    h1mass = np.concatenate((ch1mass, sh1mass), axis=0)
+    dm = BigFileMesh(project + sim + '/fastpm_%0.4f/'%aa + '/dmesh_N%04d'%nc, '1').paint()
+
+    if ofolder is None:
+        ofolder = project + '/%s/fastpm_%0.4f/'%(sim, aa)
+    
+    #measure power
+    pm = ParticleMesh(BoxSize = bs, Nmesh = [nc, nc, nc])
+    
+    pkm = FFTPower(dm/dm.cmean(), mode='1d').power
+    k, pkm = pkm['k'], pkm['power']
+
+    ##H1
+    print("H1")
+    h1mesh = pm.paint(pos, mass=h1mass)    
+    pkh1 = FFTPower(h1mesh/h1mesh.cmean(), mode='1d').power['power']
+    pkh1m = FFTPower(h1mesh/h1mesh.cmean(), second=dm/dm.cmean(), mode='1d').power['power']
+    ###Halos #Uncomment the following to estimate halo power and use it
+
+    #Bias
+    b1h1 = pkh1m/pkm
+    b1h1sq = pkh1/pkm
+
+    if saveb:
+        np.savetxt(ofolder+bname+suff, np.stack((k, b1h1, b1h1sq**0.5), axis=1), 
+                                           header='k, pkh1xm/pkm, pkh1/pkm^0.5')
+
+    return k, b1h1, b1h1sq
+
+
     
     
 
@@ -133,16 +174,18 @@ if __name__=="__main__":
     print('Starting')
     fig, ax = plt.subplots(1, 2, figsize = (9, 4))
 
-    for aa in aafiles:
+    for i, aa in enumerate(aafiles):
         ofolder = project + '/%s/fastpm_%0.4f/'%(sim, aa)        
         print('Redshift = %0.2f'%(1/aa-1))
-        k, b1, b1sq = fiddlebias(aa, ofolder=ofolder)
-        ax[0].plot(k, b1, label='%0.2f'%(1/aa-1))
-        ax[1].plot(k, b1sq**0.5)
-    
-    ax[0].legend()
+        k, b1, b1sq = fiddlebiasgal(aa, nc=256, suff='_b3p5', ofolder=ofolder, saveb=True)
+        ax[0].plot(k, b1, 'C%d'%i, lw=1.5)
+        ax[0].plot(k, b1sq**0.5, 'C%d--'%i, lw=2)
+        ax[1].plot(1/aa-1, b1[1:5].mean(), 'C%do'%i, label='%0.2f'%(1/aa-1))
+        ax[1].plot(1/aa-1, (b1sq**0.5)[1:5].mean(), 'C%d*'%i)
+
     for axis in ax: 
-        axis.set_xscale('log')
-        axis.set_ylim(1, 10)
+        axis.legend()
+        ax[0].set_xscale('log')
+        axis.set_ylim(1, 5)
         #axis.grid(which='both', lw=0.3)
-    fig.savefig('./figs/testbias.png')
+    fig.savefig('./figs/bias_b3p5.png')

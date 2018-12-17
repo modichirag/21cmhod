@@ -22,8 +22,8 @@ zzfiles = [round(tools.atoz(aa), 2) for aa in aafiles]
 #Paramteres
 #Maybe set up to take in as args file?
 bs, nc = 256, 256
-ncsim, sim, prefix = 256, 'lowres/%d-9100-fixed'%256, 'lowres'
-#ncsim, sim, prefix = 2560, 'highres/%d-9100-fixed'%2560, 'highres'
+#ncsim, sim, prefix = 256, 'lowres/%d-9100-fixed'%256, 'lowres'
+ncsim, sim, prefix = 2560, 'highres/%d-9100-fixed'%2560, 'highres'
 
 
 
@@ -41,24 +41,38 @@ def readincatalog(aa, matter=False):
 
 
 
-def make_galcat(aa,save=False, seed=3333):
+def make_galcat(aa,bexp, suff, save=False, seed=3333):
     '''do HOD with Zheng model using nbodykit'''
     zz = tools.atoz(aa)
-    print('Redshift = %0.2f'%zz)
+    print('\nRedshift = %0.2f'%zz)
     halocat = readincatalog(aa)
     hmass = halocat['Mass'].compute()
 
     #Do hod
     ofolder = project + '/%s/fastpm_%0.4f/'%(sim, aa)
     
-    dMda = -0.1
-    mcut, m1 = mkhodp_linear(aa, apiv=0.6667, hod_dMda=-0.1, mcut_apiv=10**13.35, m1_apiv=10 ** 12.80)
-    print('Mcut, m1 : ', np.log10(mcut), np.log10(m1))
+    #hoddMda = -0.1
+    #mcut, m1 = mkhodp_linear(aa, apiv=0.6667, hod_dMda=hoddMda, mcut_apiv=10**13.35, m1_apiv=10 ** 12.80)
+    mminh1 = dohod.HI_mass(None, aa, 'mcut')
+    mcutc = 0.1*mminh1
+    mmin = 0.1*mminh1
+    beta = 10**bexp
+    m1 = mmin*beta
+    kappa = 3*mmin/mcutc
+    alpha = 1
+    
+    print('Mcut, m1 : ', np.log10(mcutc), np.log10(m1))
+    print('kappa  = ', kappa)
     print('Halomass0 : ',np.log10(halocat['Mass'].compute()[1]))
+    print('Number of halos = ', hmass.size)
+    print('Number of halos above mMin = ', (hmass > mminh1).sum())
+    print('Number of halos above mcut = ', (hmass > mcutc).sum())
+    start = time()
     (ncen, cpos, cvel), (nsat, spos, svel) = hod(seed,halocat['Mass'].compute(), halocat['Position'].compute(), halocat['Velocity'].compute(),\
-                        conc=7, rvir=3, vdisp=1100, mcut=mcut, m1=m1, sigma=0.25, \
-                        kappa=1.0, alpha=0.8,vcen=0, vsat=0.5)
+                        conc=7, rvir=3, vdisp=1100, mcut=mcutc, m1=m1, sigma=0.25, \
+                        kappa=kappa, alpha=alpha,vcen=0, vsat=0.5)
 
+    print('Time taken = ', time()-start)
 
     hid = np.repeat(range(len(hmass)), ncen).astype(int)
     print('Number of centrals = ', ncen.sum())
@@ -72,10 +86,13 @@ def make_galcat(aa,save=False, seed=3333):
 
     hid = np.repeat(range(len(hmass)), nsat).astype(int)
     print('Number of satellites = ', nsat.sum())
+    print('Satellite occupancy: Max and mean = ', nsat.max(), nsat.mean())
+    #
     np.random.seed(seed)
     #Assign mass to satellites
     smass = np.random.uniform(size=hid.size)
-    smass = mcut*0.1*hmass[hid]/3. / ((1-smass)*hmass[hid]/3. + smass*mcut*0.1)
+    mmax = hmass[hid]/3.
+    smass = mmin * mmax / ((1-smass)*mmax + smass*mmin)
     #Assign HI mass
     sh1mass = dohod.HI_mass(smass, aa)
 
@@ -83,12 +100,14 @@ def make_galcat(aa,save=False, seed=3333):
                           BoxSize=halocat.attrs['BoxSize'], Nmesh=halocat.attrs['NC'])
     if save:
         colsave = [cols for cols in cencat.columns]
-        cencat.save(ofolder+'cencat', colsave)
+        cencat.save(ofolder+'cencat'+suff, colsave)
         colsave = [cols for cols in satcat.columns]
-        satcat.save(ofolder+'satcat', colsave)
+        satcat.save(ofolder+'satcat'+suff, colsave)
 #
 
 if __name__=="__main__":
 
     for aa in aafiles:
-        make_galcat(aa=aa, save=True)
+        make_galcat(aa=aa, bexp=3.0, suff='_3p0', save=True)
+        make_galcat(aa=aa, bexp=4.0, suff='_4p0', save=True)
+        make_galcat(aa=aa, bexp=2.5, suff='_2p5', save=True)
