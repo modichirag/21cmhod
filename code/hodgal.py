@@ -41,7 +41,7 @@ def readincatalog(aa, matter=False):
 
 
 
-def make_galcat(aa,bexp, suff, save=False, seed=3333):
+def make_galcat(aa, mmin, mcutc, m1, sigma=0.25, kappa=1, alpha=1, censuff=None, satsuff=None, seed=3333):
     '''do HOD with Zheng model using nbodykit'''
     zz = tools.atoz(aa)
     print('\nRedshift = %0.2f'%zz)
@@ -53,13 +53,6 @@ def make_galcat(aa,bexp, suff, save=False, seed=3333):
     
     #hoddMda = -0.1
     #mcut, m1 = mkhodp_linear(aa, apiv=0.6667, hod_dMda=hoddMda, mcut_apiv=10**13.35, m1_apiv=10 ** 12.80)
-    mminh1 = dohod.HI_mass(None, aa, 'mcut')
-    mcutc = 0.1*mminh1
-    mmin = 0.1*mminh1
-    beta = 10**bexp
-    m1 = mmin*beta
-    kappa = 3*mmin/mcutc
-    alpha = 1
     
     print('Mcut, m1 : ', np.log10(mcutc), np.log10(m1))
     print('kappa  = ', kappa)
@@ -92,22 +85,48 @@ def make_galcat(aa,bexp, suff, save=False, seed=3333):
     #Assign mass to satellites
     smass = np.random.uniform(size=hid.size)
     mmax = hmass[hid]/3.
+    mmin = np.ones_like(mmax)*mmin
+    mask = mmin > hmass[hid]/10.
+    mmin[mask] = hmass[hid][mask]/10.
     smass = mmin * mmax / ((1-smass)*mmax + smass*mmin)
+    #smass[smass>mmax] = 0
     #Assign HI mass
     sh1mass = dohod.HI_mass(smass, aa)
 
     satcat = ArrayCatalog({'Position':spos, 'Velocity':svel, 'Mass':smass, 'H1mass':sh1mass, 'HaloID':hid}, 
                           BoxSize=halocat.attrs['BoxSize'], Nmesh=halocat.attrs['NC'])
-    if save:
+    if censuff is not None:
         colsave = [cols for cols in cencat.columns]
-        cencat.save(ofolder+'cencat'+suff, colsave)
+        cencat.save(ofolder+'cencat'+censuff, colsave)
+    if satsuff is not None:
         colsave = [cols for cols in satcat.columns]
-        satcat.save(ofolder+'satcat'+suff, colsave)
+        satcat.save(ofolder+'satcat'+satsuff, colsave)
 #
 
 if __name__=="__main__":
 
     for aa in aafiles:
-        make_galcat(aa=aa, bexp=3.0, suff='_3p0', save=True)
-        make_galcat(aa=aa, bexp=4.0, suff='_4p0', save=True)
-        make_galcat(aa=aa, bexp=2.5, suff='_2p5', save=True)
+        mminh1 = dohod.HI_mass(None, aa, 'mcut')
+        mcutc = 1#0.1 *mminh1
+        kappa = 0
+        alpha = 1
+        sigma = 0
+ 
+        #sat hod : N = ((M_h-\kappa*mcut)/m1)**alpha
+        mmin = 1.*mminh1
+        m1 = 5*mminh1
+        satsuff = '-min_1p0h1-m1_5p0h1'
+        make_galcat(aa=aa, mmin=mmin, mcutc=1, m1=m1, sigma=sigma, kappa=kappa, alpha=alpha, censuff=None, satsuff=satsuff)
+        m1 = 20*mminh1
+        satsuff = '-min_1p0h1-m1_20p0h1'
+        make_galcat(aa=aa, mmin=mmin, mcutc=1, m1=m1, sigma=sigma, kappa=kappa, alpha=alpha, censuff=None, satsuff=satsuff)
+
+        mmin = 2*mminh1
+        m1 = 10*mminh1
+        satsuff = '-min_2p0h1-m1_10p0h1'
+        make_galcat(aa=aa, mmin=mmin, mcutc=1, m1=m1, sigma=sigma, kappa=kappa, alpha=alpha, censuff=None, satsuff=satsuff)
+
+        mmin = 2*mminh1
+        m1 = 20*mminh1
+        satsuff = '-min_2p0h1-m1_20p0h1'
+        make_galcat(aa=aa, mmin=mmin, mcutc=1, m1=m1, sigma=sigma, kappa=kappa, alpha=alpha, censuff=None, satsuff=satsuff)
