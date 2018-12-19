@@ -105,28 +105,27 @@ def make_galcat(aa, mmin, mcutc, m1, sigma=0.25, kappa=1, alpha=1, censuff=None,
 
 if __name__=="__main__":
 
-    for aa in aafiles:
+    for aa in aafiles[:]:
         mminh1 = dohod.HI_mass(None, aa, 'mcut')
-        mcutc = 1#0.1 *mminh1
+        mcutc = 1e14#0.1 *mminh1
         kappa = 0
-        alpha = 1
         sigma = 0
  
         #sat hod : N = ((M_h-\kappa*mcut)/m1)**alpha
-        mmin = 1.*mminh1
-        m1 = 5*mminh1
-        satsuff = '-min_1p0h1-m1_5p0h1'
-        make_galcat(aa=aa, mmin=mmin, mcutc=1, m1=m1, sigma=sigma, kappa=kappa, alpha=alpha, censuff=None, satsuff=satsuff)
-        m1 = 20*mminh1
-        satsuff = '-min_1p0h1-m1_20p0h1'
-        make_galcat(aa=aa, mmin=mmin, mcutc=1, m1=m1, sigma=sigma, kappa=kappa, alpha=alpha, censuff=None, satsuff=satsuff)
+        zz = 1/aa-1
+        mmin = 10**(11-0.4*np.array(zz))
+        mmin /= 10
+        alpha = 0.9
+        for m1 in [5, 10, 20]:
+            satsuff='-mmin0p1_m1_%dp%dmin-alpha_0p9'%(int(m1), (m1*10)%10)
+            print('\n', mmin, m1, satsuff, '\n')
+            m1m = m1*mmin
+            make_galcat(aa=aa, mmin=mmin, mcutc=mcutc, m1=m1m, sigma=sigma, kappa=kappa, alpha=alpha, censuff=None, satsuff=satsuff)
 
-        mmin = 2*mminh1
-        m1 = 10*mminh1
-        satsuff = '-min_2p0h1-m1_10p0h1'
-        make_galcat(aa=aa, mmin=mmin, mcutc=1, m1=m1, sigma=sigma, kappa=kappa, alpha=alpha, censuff=None, satsuff=satsuff)
+        alpha = 0.8
+        for m1 in [5, 10, 20]:
+            satsuff='-mmin0p1_m1_%dp%dmin-alpha_0p8'%(int(m1), (m1*10)%10)
+            print('\n', mmin, m1, satsuff, '\n')
+            m1m = m1*mmin
+            make_galcat(aa=aa, mmin=mmin, mcutc=mcutc, m1=m1m, sigma=sigma, kappa=kappa, alpha=alpha, censuff=None, satsuff=satsuff)
 
-        mmin = 2*mminh1
-        m1 = 20*mminh1
-        satsuff = '-min_2p0h1-m1_20p0h1'
-        make_galcat(aa=aa, mmin=mmin, mcutc=1, m1=m1, sigma=sigma, kappa=kappa, alpha=alpha, censuff=None, satsuff=satsuff)

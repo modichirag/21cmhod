@@ -17,7 +17,7 @@ pm = ParticleMesh(BoxSize = bs, Nmesh = [nc, nc, nc])
 # sim = '/lowres/%d-9100-fixed'%256
 sim = '/highres/%d-9100-fixed'%2560
 aafiles = [0.1429, 0.1538, 0.1667, 0.1818, 0.2000, 0.2222, 0.2500, 0.2857, 0.3333]
-#aafiles = aafiles[:2]
+#aafiles = aafiles[:5]
 zzfiles = [round(tools.atoz(aa), 2) for aa in aafiles]
 
 
@@ -67,7 +67,13 @@ for iz, zz in enumerate(zzfiles):
 ##Satellites
 
 #for suff in ['_b3p0', '_b2p5', '_b3p5', '_b4p0']:
-for suff in ['-min_1p0h1-m1_10p0h1',  '-min_1p0h1-m1_100p0h1', '-min_1p0h1-m1_50p0h1', '-min_0p5h1-m1_10p0h1']:
+#for suff in ['-min_1p0h1-m1_10p0h1',  '-min_1p0h1-m1_100p0h1', '-min_1p0h1-m1_50p0h1', '-min_0p5h1-m1_10p0h1']:
+#for suff in ['-min_2p0h1-m1_10p0h1',  '-min_2p0h1-m1_20p0h1', '-min_1p0h1-m1_5p0h1', '-min_1p0h1-m1_20p0h1']:
+#for suff in ['-min_10p0h1-m1_10p0h1',  '-min_1p0h1-m1_20p0h1', '-min_5p0h1-m1_10p0h1', '-min_5p0h1-m1_50p0h1']:
+#for suff in ['-m1_1p0min-alpha_0p8', '-m1_5p0min-alpha_0p8', '-m1_10p0min-alpha_0p8', '-m1_50p0min-alpha_0p8']:
+#for suff in ['-m1_2p0min-alpha_0p9', '-m1_5p0min-alpha_0p9', '-m1_10p0min-alpha_0p9', '-m1_8p0min-alpha_0p9']:
+for suff in ['-mmin0p1_m1_5p0min-alpha_0p9', '-mmin0p1_m1_10p0min-alpha_0p9', '-mmin0p1_m1_20p0min-alpha_0p9', '-mmin0p1_m1_5p0min-alpha_0p8',\
+             '-mmin0p1_m1_10p0min-alpha_0p8', '-mmin0p1_m1_20p0min-alpha_0p8']:
     print(suff)
     spos, smass, sh1mass, shid = {}, {}, {}, {}
 
@@ -103,7 +109,7 @@ for suff in ['-min_1p0h1-m1_10p0h1',  '-min_1p0h1-m1_100p0h1', '-min_1p0h1-m1_50
     plt.xlabel('M_h (M$_\odot$/h)')
     plt.ylabel('Number of satellites')
     plt.legend()
-    plt.savefig('./figs/satcount%s'%suff)
+    plt.savefig('./figs/m1_alpha/satcount%s'%suff)
 
     ## Plot mass of HI in centrals and satellites
     fig, ax = plt.subplots(3, 3, figsize=(12, 12))
@@ -117,7 +123,7 @@ for suff in ['-min_1p0h1-m1_10p0h1',  '-min_1p0h1-m1_100p0h1', '-min_1p0h1-m1_50
     for axis in ax[:, 0]:axis.set_ylabel('M$_{HI}$')
     for axis in ax[-1, :]:axis.set_xlabel('M$_{h}$')
     ax[0, 0].legend()
-    plt.savefig('./figs/HIdist%s'%suff)
+    plt.savefig('./figs/m1_alpha/HIdist%s'%suff)
 
 
     ## Plot fraction of HI in centrals and satellites
@@ -132,7 +138,7 @@ for suff in ['-min_1p0h1-m1_10p0h1',  '-min_1p0h1-m1_100p0h1', '-min_1p0h1-m1_50
     for axis in ax[:, 0]:axis.set_ylabel('M$_{HI}$')
     for axis in ax[-1, :]:axis.set_xlabel('M$_{h}$')
     ax[0, 0].legend()
-    plt.savefig('./figs/HIdistratio%s'%suff)
+    plt.savefig('./figs/m1_alpha/HIdistratio%s'%suff)
 
 
     ## Plot mass function of centrals and satellites
@@ -146,7 +152,7 @@ for suff in ['-min_1p0h1-m1_10p0h1',  '-min_1p0h1-m1_100p0h1', '-min_1p0h1-m1_50
     plt.legend(ncol=2, loc=1)
     plt.xlim(8.5, 12)
     plt.ylim(10, 2e7)
-    plt.savefig('./figs/massfunc%s'%suff)
+    plt.savefig('./figs/m1_alpha/massfunc%s'%suff)
 
 
 
@@ -173,5 +179,5 @@ for suff in ['-min_1p0h1-m1_10p0h1',  '-min_1p0h1-m1_100p0h1', '-min_1p0h1-m1_50
         ax[0].set_xscale('log')
         axis.set_ylim(1, 5)
         #axis.grid(which='both', lw=0.3)
-    fig.savefig('./figs/bias%s.png'%suff)
+    fig.savefig('./figs/m1_alpha/bias%s.png'%suff)
 
