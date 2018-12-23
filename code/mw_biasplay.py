@@ -74,10 +74,11 @@ if __name__=="__main__":
     flog.write("# {:>4s} {:>12s} {:>6s}\n".format("z","Mcut","b"))
     for aa in alist:
         zz         = 1.0/aa-1.0
-        mcut       = 2e9
         mcut       = 2e10*aa
         mcut       = 1e10*np.exp(-(zz-2.0))
         mcut       = 1.5e10*(3*aa)**3
+        mcut       = 5e9
+        mcut       = 1e9*( 1.8 + 15*(3*aa)**8 )
         kk,b1x,b1a = calc_bias(aa,mcut,satsuff)
         #
         fout = open("HI_bias_{:6.4f}.txt".format(aa),"w")
