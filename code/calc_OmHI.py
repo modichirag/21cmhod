@@ -29,8 +29,9 @@ def HI_hod(mhalo,aa):
     zp1 = 1.0/aa
     zz  = zp1-1
     alp = (1+2*zz)/(2+2*zz)
-    mcut= 2e10*aa
+    mcut= 1e9*( 1.8 + 15*(3*aa)**8 )
     norm= 2e9*np.exp(-1.8*zp1+0.05*zp1**2)
+    norm= 3e5*(1+(3.5/zz)**6)
     xx  = mhalo/mcut+1e-10
     mHI = xx**alp * np.exp(-1/xx)
     mHI*= norm

@@ -7,8 +7,8 @@ from nbodykit.lab import BigFileCatalog, BigFileMesh, FFTPower
 scratch = '/global/cscratch1/sd/yfeng1/m3127/'
 project = '/project/projectdirs/m3127/H1mass/'
 cosmodef = {'omegam':0.309167, 'h':0.677, 'omegab':0.048}
-aafiles = [0.1429,0.1538,0.1667,0.1818,0.2000,0.2222,0.2500,0.2857,0.3333]
-alist   = [0.1429,0.1667,0.2000,0.2500,0.2857,0.3333]
+alist   = [0.1429,0.1667,0.2000,0.2222,0.2500,0.2857,0.3333]
+alist   = [0.1429,0.1538,0.1667,0.1818,0.2000,0.2222,0.2500,0.2857,0.3333]
 
 
 #Parameters, box size, number of mesh cells, simulation, ...
@@ -23,7 +23,7 @@ def HI_hod(mhalo,aa,mcut=2e9):
     zp1 = 1.0/aa
     zz  = zp1-1
     alp = (1+2*zz)/(2+2*zz)
-    norm= 2e9*np.exp(-1.9*zp1+0.07*zp1**2)
+    norm= 3e5*(1+(3.5/zz)**6)
     xx  = mhalo/mcut+1e-10
     mHI = xx**alp * np.exp(-1/xx)
     mHI*= norm
@@ -69,7 +69,8 @@ def calc_bias(aa,mcut,suff):
 
 if __name__=="__main__":
     print('Starting')
-    satsuff='-m1_5p0min-alpha_0p9' # '-m1_8p0min-alpha_0p9'
+    satsuff='-m1_5p0min-alpha_0p9'
+    satsuff='-m1_8p0min-alpha_0p9'
     flog = open("HI_bias_vs_z.txt","w")
     flog.write("# {:>4s} {:>12s} {:>6s}\n".format("z","Mcut","b"))
     for aa in alist:
