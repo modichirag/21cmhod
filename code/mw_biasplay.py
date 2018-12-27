@@ -22,6 +22,7 @@ def HI_hod(mhalo,aa,mcut=2e9):
     """Returns the 21cm "mass" for a box of halo masses."""
     zp1 = 1.0/aa
     zz  = zp1-1
+    alp = 1.0
     alp = (1+2*zz)/(2+2*zz)
     norm= 3e5*(1+(3.5/zz)**6)
     xx  = mhalo/mcut+1e-10
@@ -60,7 +61,7 @@ def calc_bias(aa,mcut,suff):
     # Compute the biases.
     b1x = np.abs(pkh1mm/(pkmm+1e-10))
     b1a = np.abs(pkh1h1/(pkmm+1e-10))**0.5
-    return(k,b1x,b1a)
+    return(k,b1x,b1a,np.abs(pkmm))
     #
 
 
@@ -70,24 +71,26 @@ def calc_bias(aa,mcut,suff):
 if __name__=="__main__":
     print('Starting')
     satsuff='-m1_5p0min-alpha_0p9'
+    satsuff='-mmin0p1_m1_5p0min-alpha_0p9'
     satsuff='-m1_8p0min-alpha_0p9'
     flog = open("HI_bias_vs_z.txt","w")
     flog.write("# {:>4s} {:>12s} {:>6s}\n".format("z","Mcut","b"))
     for aa in alist:
-        zz         = 1.0/aa-1.0
-        mcut       = 2e10*aa
-        mcut       = 1e10*np.exp(-(zz-2.0))
-        mcut       = 1.5e10*(3*aa)**3
-        mcut       = 5e9
-        mcut       = 1e9*( 1.8 + 15*(3*aa)**8 )
-        kk,b1x,b1a = calc_bias(aa,mcut,satsuff)
+        zz   = 1.0/aa-1.0
+        mcut = 2e10*aa
+        mcut = 1e10*np.exp(-(zz-2.0))
+        mcut = 1.5e10*(3*aa)**3
+        mcut = 3e9
+        mcut = 1e9*( 1.8 + 15*(3*aa)**8 )
+        kk,b1x,b1a,pkmm = calc_bias(aa,mcut,satsuff)
         #
         fout = open("HI_bias_{:6.4f}.txt".format(aa),"w")
         fout.write("# Mcut={:12.4e}Msun/h.\n".format(mcut))
-        fout.write("# {:>8s} {:>10s} {:>10s}\n".format("k","b1_x","b1_a"))
+        fout.write("# {:>8s} {:>10s} {:>10s} {:>15s}\n".\
+                   format("k","b1_x","b1_a","Pkmm"))
         for i in range(1,kk.size):
-            fout.write("{:10.5f} {:10.5f} {:10.5f}\n".\
-                       format(kk[i],b1x[i],b1a[i]))
+            fout.write("{:10.5f} {:10.5f} {:10.5f} {:15.5e}\n".\
+                       format(kk[i],b1x[i],b1a[i],pkmm[i]))
         fout.close()
         #
         bavg = np.mean(b1x[1:6])
