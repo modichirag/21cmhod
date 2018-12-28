@@ -73,9 +73,9 @@ def calc_pk(aa,suff):
     print("RSD factor=",rsdfac)
     #
     los      = [0,0,rsdfac]
-    cpos     = cencat['Position']+cencat['VelocityOffset']*los
+    cpos     = cencat['Position']+cencat['Velocity']*los
     cmass    = cencat['Mass']
-    spos     = satcat['Position']+satcat['VelocityOffset']*los
+    spos     = satcat['Position']+satcat['Velocity']*los
     smass    = satcat['Mass']
     pos      = np.concatenate((cpos,spos),axis=0)
     ch1mass  = HI_hod(cmass,aa)   
@@ -146,5 +146,5 @@ if __name__=="__main__":
         for i in range(1,kk.size):
             fout.write("{:10.5f} {:15.5e}\n".format(kk[i],pk[i]))
         fout.close()
-        calc_pkmu()
+        calc_pkmu(aa,satsuff)
     #
