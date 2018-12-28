@@ -123,12 +123,16 @@ def calc_pkmu(aa,suff):
     ss = "# {:>6s}".format(r'k\mu')
     for i in range(pkh1h1.shape[1]):
         ss += " {:15.4f}".format(pkh1h1.coords['mu'][i])
-    fout.write(str+"\n")
-    for i in range(pkh1h1.shape[0]):
-        ss = "{:8.4f}".format(pkh1h1['k'][i])
-        for j in range(pkh1h1.shape[1]):
-            ss += " {:15.5e}".format(pkh1h1[i,j]['power'].real)
-        fout.write(str+"\n")
+    fout.write(ss+"\n")
+    kk = pkh1h1.coords['k']
+    pk = pkh1h1['power']
+    print(kk)
+    print(pk)
+    for i in range(1,pk.shape[0]):
+        ss = "{:8.4f}".format(kk[i])
+        for j in range(pk.shape[1]):
+            ss += " {:15.5e}".format(np.abs(pk[i,j]))
+        fout.write(ss+"\n")
     fout.close()
     #
 
