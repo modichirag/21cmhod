@@ -64,18 +64,18 @@ def read_conversions(db):
 
 
 
-def calc_pk(aa,suff):
-    '''Compute the redshift-space P(k) for the HI'''
+def calc_pk1d(aa,suff):
+    '''Compute the 1D redshift-space P(k) for the HI'''
     print('Read in central/satellite catalogs')
     cencat = BigFileCatalog(project+sim+'/fastpm_%0.4f/cencat'%aa)
     satcat = BigFileCatalog(project+sim+'/fastpm_%0.4f/satcat'%aa+suff)
     rsdfac = read_conversions(scratch+sim+'/fastpm_%0.4f/'%aa)
     print("RSD factor=",rsdfac)
     #
-    los      = [0,0,rsdfac]
-    cpos     = cencat['Position']+cencat['Velocity']*los
+    los      = [0,0,1]
+    cpos     = cencat['Position']+cencat['Velocity']*los * rsdfac
     cmass    = cencat['Mass']
-    spos     = satcat['Position']+satcat['Velocity']*los
+    spos     = satcat['Position']+satcat['Velocity']*los * rsdfac
     smass    = satcat['Mass']
     pos      = np.concatenate((cpos,spos),axis=0)
     ch1mass  = HI_hod(cmass,aa)   
@@ -84,10 +84,14 @@ def calc_pk(aa,suff):
     pm       = ParticleMesh(BoxSize=bs,Nmesh=[nc,nc,nc])
     h1mesh   = pm.paint(pos,mass=h1mass)    
     pkh1h1   = FFTPower(h1mesh/h1mesh.cmean(),mode='1d').power
-    # Extract the quantities we want.
-    kk  = pkh1h1['k']
-    pk  = pkh1h1['power']
-    return(kk,np.abs(pk))
+    # Extract the quantities we want and write the file.
+    kk   = pkh1h1['k']
+    pk   = np.abs(pkh1h1['power'])
+    fout = open("HI_pks_1d_{:6.4f}.txt".format(aa),"w")
+    fout.write("# {:>8s} {:>15s}\n".format("k","Pk_0_HI"))
+    for i in range(1,kk.size):
+        fout.write("{:10.5f} {:15.5e}\n".format(kk[i],pk[i]))
+    fout.close()
     #
 
 
@@ -101,10 +105,10 @@ def calc_pkmu(aa,suff):
     rsdfac = read_conversions(scratch+sim+'/fastpm_%0.4f/'%aa)
     print("RSD factor=",rsdfac)
     #
-    los      = [0,0,rsdfac]
-    cpos     = cencat['Position']+cencat['Velocity']*los
+    los      = [0,0,1]
+    cpos     = cencat['Position']+cencat['Velocity']*los * rsdfac
     cmass    = cencat['Mass']
-    spos     = satcat['Position']+satcat['Velocity']*los
+    spos     = satcat['Position']+satcat['Velocity']*los * rsdfac
     smass    = satcat['Mass']
     pos      = np.concatenate((cpos,spos),axis=0)
     ch1mass  = HI_hod(cmass,aa)   
@@ -112,7 +116,7 @@ def calc_pkmu(aa,suff):
     h1mass   = np.concatenate((ch1mass,sh1mass),axis=0)
     pm       = ParticleMesh(BoxSize=bs,Nmesh=[nc,nc,nc])
     h1mesh   = pm.paint(pos,mass=h1mass)    
-    pkh1h1   = FFTPower(h1mesh/h1mesh.cmean(),mode='2d',Nmu=5,los=los).power
+    pkh1h1   = FFTPower(h1mesh/h1mesh.cmean(),mode='2d',Nmu=4,los=los).power
     # Write the results to a file.
     fout = open("HI_pks_mu_{:06.4f}.txt".format(aa),"w")
     fout.write("# Redshift space power spectrum in mu bins.\n")
@@ -139,12 +143,6 @@ if __name__=="__main__":
     satsuff='-m1_5p0min-alpha_0p9'
     for aa in alist:
         zz   = 1.0/aa-1.0
-        kk,pk= calc_pk(aa,satsuff)
-        #
-        fout = open("HI_pks_1d_{:6.4f}.txt".format(aa),"w")
-        fout.write("# {:>8s} {:>15s}\n".format("k","Pk_HI"))
-        for i in range(1,kk.size):
-            fout.write("{:10.5f} {:15.5e}\n".format(kk[i],pk[i]))
-        fout.close()
+        calc_pk1d(aa,satsuff)
         calc_pkmu(aa,satsuff)
     #
