@@ -9,7 +9,6 @@ scratch = '/global/cscratch1/sd/yfeng1/m3127/'
 project = '/project/projectdirs/m3127/H1mass/'
 cosmodef = {'omegam':0.309167, 'h':0.677, 'omegab':0.048}
 alist   = [0.1429,0.1538,0.1667,0.1818,0.2000,0.2222,0.2500,0.2857,0.3333]
-alist   = [0.2500]
 
 
 #Parameters, box size, number of mesh cells, simulation, ...
@@ -175,7 +174,7 @@ def calc_pkll(aa,suff):
     fout = open("HI_pks_ll_{:06.4f}.txt".format(aa),"w")
     fout.write("# Redshift space power spectrum multipoles.\n")
     fout.write("# Subtracting SN={:15.5e} from monopole.\n".format(sn))
-    fout.write("# {:>8s} {:>15s} {:>15s}\n".format("k","P0","P2"))
+    fout.write("# {:>8s} {:>15s} {:>15s} {:>15s}\n".format("k","P0","P2","P4"))
     for i in range(1,kk.size):
         fout.write("{:10.5f} {:15.5e} {:15.5e} {:15.5e}\n".\
                    format(kk[i],P0[i],P2[i],P4[i]))
