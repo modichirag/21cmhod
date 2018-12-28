@@ -1,6 +1,7 @@
 import numpy as np
+import re
 from pmesh.pm     import ParticleMesh
-from nbodykit.lab import BigFileCatalog, BigFileMesh, FFTPower
+from nbodykit.lab import BigFileCatalog, FFTPower
 #
 #
 #Global, fixed things
@@ -68,7 +69,7 @@ def calc_pk(aa,suff):
     print('Read in central/satellite catalogs')
     cencat = BigFileCatalog(project+sim+'/fastpm_%0.4f/cencat'%aa)
     satcat = BigFileCatalog(project+sim+'/fastpm_%0.4f/satcat'%aa+suff)
-    rsdfac = read_conversions(project+sim+'/fastpm_%0.4f/cencat/'%aa)
+    rsdfac = read_conversions(scratch+sim+'/fastpm_%0.4f/'%aa)
     print("RSD factor=",rsdfac)
     #
     los      = [0,0,rsdfac]
@@ -97,7 +98,7 @@ def calc_pkmu(aa,suff):
     print('Read in central/satellite catalogs')
     cencat = BigFileCatalog(project+sim+'/fastpm_%0.4f/cencat'%aa)
     satcat = BigFileCatalog(project+sim+'/fastpm_%0.4f/satcat'%aa+suff)
-    rsdfac = read_conversions(project+sim+'/fastpm_%0.4f/cencat/'%aa)
+    rsdfac = read_conversions(scratch+sim+'/fastpm_%0.4f/'%aa)
     print("RSD factor=",rsdfac)
     #
     los      = [0,0,rsdfac]
