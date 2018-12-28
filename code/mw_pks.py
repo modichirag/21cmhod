@@ -18,7 +18,7 @@ ncsim, sim, prefix = 2560, 'highres/%d-9100-fixed'%2560, 'highres'
 
 
 
-
+# This should be imported once from a "central" place.
 def HI_hod(mhalo,aa):
     """Returns the 21cm "mass" for a box of halo masses."""
     zp1 = 1.0/aa
@@ -192,7 +192,7 @@ if __name__=="__main__":
     satsuff='-m1_8p0min-alpha_0p9'
     satsuff='-m1_5p0min-alpha_0p9'
     for aa in alist:
-        zz   = 1.0/aa-1.0
         calc_pk1d(aa,satsuff)
         calc_pkmu(aa,satsuff)
+        calc_pkll(aa,satsuff)
     #
