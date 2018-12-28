@@ -71,7 +71,7 @@ def calc_pk1d(aa,suff):
     satcat = BigFileCatalog(project+sim+'/fastpm_%0.4f/satcat'%aa+suff)
     rsdfac = read_conversions(scratch+sim+'/fastpm_%0.4f/'%aa)
     print("RSD factor=",rsdfac)
-    #
+    # Compute the power spectrum
     los      = [0,0,1]
     cpos     = cencat['Position']+cencat['Velocity']*los * rsdfac
     cmass    = cencat['Mass']
@@ -86,11 +86,13 @@ def calc_pk1d(aa,suff):
     pkh1h1   = FFTPower(h1mesh/h1mesh.cmean(),mode='1d').power
     # Extract the quantities we want and write the file.
     kk   = pkh1h1['k']
+    sn   = pkh1h1.attrs['shotnoise']
     pk   = np.abs(pkh1h1['power'])
     fout = open("HI_pks_1d_{:6.4f}.txt".format(aa),"w")
+    fout.write("# Subtracting SN={:15.5e}.\n".format(sn))
     fout.write("# {:>8s} {:>15s}\n".format("k","Pk_0_HI"))
     for i in range(1,kk.size):
-        fout.write("{:10.5f} {:15.5e}\n".format(kk[i],pk[i]))
+        fout.write("{:10.5f} {:15.5e}\n".format(kk[i],pk[i]-sn))
     fout.close()
     #
 
@@ -99,6 +101,51 @@ def calc_pk1d(aa,suff):
 
 def calc_pkmu(aa,suff):
     '''Compute the redshift-space P(k) for the HI in mu bins'''
+    print('Read in central/satellite catalogs')
+    cencat = BigFileCatalog(project+sim+'/fastpm_%0.4f/cencat'%aa)
+    satcat = BigFileCatalog(project+sim+'/fastpm_%0.4f/satcat'%aa+suff)
+    rsdfac = read_conversions(scratch+sim+'/fastpm_%0.4f/'%aa)
+    print("RSD factor=",rsdfac)
+    # Compute P(k,mu)
+    los      = [0,0,1]
+    cpos     = cencat['Position']+cencat['Velocity']*los * rsdfac
+    cmass    = cencat['Mass']
+    spos     = satcat['Position']+satcat['Velocity']*los * rsdfac
+    smass    = satcat['Mass']
+    pos      = np.concatenate((cpos,spos),axis=0)
+    ch1mass  = HI_hod(cmass,aa)   
+    sh1mass  = HI_hod(smass,aa)   
+    h1mass   = np.concatenate((ch1mass,sh1mass),axis=0)
+    pm       = ParticleMesh(BoxSize=bs,Nmesh=[nc,nc,nc])
+    h1mesh   = pm.paint(pos,mass=h1mass)    
+    pkh1h1   = FFTPower(h1mesh/h1mesh.cmean(),mode='2d',Nmu=4,los=los).power
+    # Extract what we want.
+    kk = pkh1h1.coords['k']
+    sn = pkh1h1.attrs['shotnoise']
+    pk = pkh1h1['power']
+    # Write the results to a file.
+    fout = open("HI_pks_mu_{:06.4f}.txt".format(aa),"w")
+    fout.write("# Redshift space power spectrum in mu bins.\n")
+    fout.write("# Subtracting SN={:15.5e}.\n".format(sn))
+    ss = "# {:>8s}".format(r'k\mu')
+    for i in range(pkh1h1.shape[1]):
+        ss += " {:15.5f}".format(pkh1h1.coords['mu'][i])
+    fout.write(ss+"\n")
+    for i in range(1,pk.shape[0]):
+        ss = "{:10.5f}".format(kk[i])
+        for j in range(pk.shape[1]):
+            ss += " {:15.5e}".format(np.abs(pk[i,j]-sn))
+        fout.write(ss+"\n")
+    fout.close()
+    #
+
+
+    
+
+
+
+def calc_pkll(aa,suff):
+    '''Compute the redshift-space P_ell(k) for the HI'''
     print('Read in central/satellite catalogs')
     cencat = BigFileCatalog(project+sim+'/fastpm_%0.4f/cencat'%aa)
     satcat = BigFileCatalog(project+sim+'/fastpm_%0.4f/satcat'%aa+suff)
@@ -116,23 +163,22 @@ def calc_pkmu(aa,suff):
     h1mass   = np.concatenate((ch1mass,sh1mass),axis=0)
     pm       = ParticleMesh(BoxSize=bs,Nmesh=[nc,nc,nc])
     h1mesh   = pm.paint(pos,mass=h1mass)    
-    pkh1h1   = FFTPower(h1mesh/h1mesh.cmean(),mode='2d',Nmu=4,los=los).power
-    # Write the results to a file.
-    fout = open("HI_pks_mu_{:06.4f}.txt".format(aa),"w")
-    fout.write("# Redshift space power spectrum in mu bins.\n")
-    ss = "# {:>6s}".format(r'k\mu')
-    for i in range(pkh1h1.shape[1]):
-        ss += " {:15.4f}".format(pkh1h1.coords['mu'][i])
-    fout.write(ss+"\n")
+    pkh1h1   = FFTPower(h1mesh/h1mesh.cmean(),mode='2d',Nmu=8,\
+                        los=los,poles=[0,2,4]).poles
+    # Extract the quantities of interest.
     kk = pkh1h1.coords['k']
-    pk = pkh1h1['power']
-    print(kk)
-    print(pk)
-    for i in range(1,pk.shape[0]):
-        ss = "{:8.4f}".format(kk[i])
-        for j in range(pk.shape[1]):
-            ss += " {:15.5e}".format(np.abs(pk[i,j]))
-        fout.write(ss+"\n")
+    sn = pkh1h1.attrs['shotnoise']
+    P0 = pkh1h1['power_0'].real - sn
+    P2 = pkh1h1['power_2'].real
+    P4 = pkh1h1['power_4'].real
+    # Write the results to a file.
+    fout = open("HI_pks_ll_{:06.4f}.txt".format(aa),"w")
+    fout.write("# Redshift space power spectrum multipoles.\n")
+    fout.write("# Subtracting SN={:15.5e} from monopole.\n".format(sn))
+    fout.write("# {:>8s} {:>15s} {:>15s}\n".format("k","P0","P2"))
+    for i in range(1,kk.size):
+        fout.write("{:10.5f} {:15.5e} {:15.5e} {:15.5e}\n".\
+                   format(kk[i],P0[i],P2[i],P4[i]))
     fout.close()
     #
 
