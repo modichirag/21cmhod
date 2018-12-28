@@ -34,6 +34,33 @@ def HI_hod(mhalo,aa):
 
 
 
+def read_conversions(db):
+    """Read the conversion factors we need and check we have the right time."""
+    mpart,Lbox,rsdfac,acheck = None,None,None,None
+    with open(db+"Header/attr-v2","r") as ff:
+        for line in ff.readlines():
+            mm = re.search("MassTable.*\#HUMANE\s+\[\s*0\s+(\d*\.\d*)\s*0+\s+0\s+0\s+0\s+\]",line)
+            if mm != None:
+                mpart = float(mm.group(1)) * 1e10
+            mm = re.search("BoxSize.*\#HUMANE\s+\[\s*(\d+)\s*\]",line)
+            if mm != None:
+                Lbox = float(mm.group(1))
+            mm = re.search("RSDFactor.*\#HUMANE\s+\[\s*(\d*\.\d*)\s*\]",line)
+            if mm != None:
+                rsdfac = float(mm.group(1))
+            mm = re.search("ScalingFactor.*\#HUMANE\s+\[\s*(\d*\.\d*)\s*\]",line)
+            if mm != None:
+                acheck = float(mm.group(1))
+    if (mpart is None)|(Lbox is None)|(rsdfac is None)|(acheck is None):
+        print(mpart,Lbox,rsdfac,acheck)
+        raise RuntimeError("Unable to get conversions from attr-v2.")
+    if np.abs(acheck-aa)>1e-4:
+        raise RuntimeError("Read a={:f}, expecting {:f}.".format(acheck,aa))
+    return(rsdfac)
+    #
+
+
+
 
 
 def calc_pk(aa,suff):
@@ -41,11 +68,13 @@ def calc_pk(aa,suff):
     print('Read in central/satellite catalogs')
     cencat = BigFileCatalog(project+sim+'/fastpm_%0.4f/cencat'%aa)
     satcat = BigFileCatalog(project+sim+'/fastpm_%0.4f/satcat'%aa+suff)
+    rsdfac = read_conversions(project+sim+'/fastpm_%0.4f/cencat/'%aa)
+    print("RSD factor=",rsdfac)
     #
-    los      = [0,0,1]
-    cpos     = cencat['Position']+censat['VelocityOffset']*los
+    los      = [0,0,rsdfac]
+    cpos     = cencat['Position']+cencat['VelocityOffset']*los
     cmass    = cencat['Mass']
-    spos     = satcat['Position']+censat['VelocityOffset']*los
+    spos     = satcat['Position']+satcat['VelocityOffset']*los
     smass    = satcat['Mass']
     pos      = np.concatenate((cpos,spos),axis=0)
     ch1mass  = HI_hod(cmass,aa)   
@@ -68,11 +97,13 @@ def calc_pkmu(aa,suff):
     print('Read in central/satellite catalogs')
     cencat = BigFileCatalog(project+sim+'/fastpm_%0.4f/cencat'%aa)
     satcat = BigFileCatalog(project+sim+'/fastpm_%0.4f/satcat'%aa+suff)
+    rsdfac = read_conversions(project+sim+'/fastpm_%0.4f/cencat/'%aa)
+    print("RSD factor=",rsdfac)
     #
-    los      = [0,0,1]
-    cpos     = cencat['Position']+censat['VelocityOffset']*los
+    los      = [0,0,rsdfac]
+    cpos     = cencat['Position']+cencat['Velocity']*los
     cmass    = cencat['Mass']
-    spos     = satcat['Position']+censat['VelocityOffset']*los
+    spos     = satcat['Position']+satcat['Velocity']*los
     smass    = satcat['Mass']
     pos      = np.concatenate((cpos,spos),axis=0)
     ch1mass  = HI_hod(cmass,aa)   
