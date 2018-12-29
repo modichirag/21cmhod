@@ -4,6 +4,7 @@
 #
 import numpy as np
 import matplotlib.pyplot as plt
+from   scipy.interpolate import InterpolatedUnivariateSpline as Spline
 
 
 
@@ -20,6 +21,12 @@ def make_calib_plot():
     ax[0].fill_between([1.5,3.5],[1.99-0.11,1.99-0.11],\
                                  [1.99+0.11,1.99+0.11],\
                        color='lightgrey',alpha=0.5)
+    # The N-body results.
+    bb = np.loadtxt("HI_bias_vs_z_fid.txt")
+    ax[0].plot(bb[:,0],bb[:,2],'md')
+    ss = Spline(bb[::-1,0],bb[::-1,2])
+    ax[0].plot(np.linspace(1.5,3.5,100),ss(np.linspace(1.5,3.5,100)),'m--')
+    #
     ax[0].set_xlabel(r'$z$')
     ax[0].set_ylabel(r'$b_{DLA}(z)$')
     # Tidy up.
@@ -39,9 +46,12 @@ def make_calib_plot():
     ax[1].plot(zz,4e-4*(1+zz)**0.6/Ez**2,'k-')
     # Now plot the simulation points.
     dd = np.loadtxt("omega_HI_sim.txt")
+    ######################dd[:,1] *= 3e5*(1+(3.5/dd[:,0])**6) / 2e9
     ax[1].plot(dd[:,0],dd[:,1],'md')
+    ss = Spline(dd[:,0],dd[:,1])
+    ax[1].plot(np.linspace(2,6,100),ss(np.linspace(2,6,100)),'m--')
     # Tidy up the plot.
-    ax[1].set_xlim(1,6)
+    ax[1].set_xlim(1,6.25)
     ax[1].set_ylim(4e-6,3e-4)
     ax[1].set_xscale('linear')
     ax[1].set_yscale('log')
