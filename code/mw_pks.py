@@ -69,7 +69,6 @@ def calc_pk1d(aa,suff):
     cencat = BigFileCatalog(project+sim+'/fastpm_%0.4f/cencat'%aa)
     satcat = BigFileCatalog(project+sim+'/fastpm_%0.4f/satcat'%aa+suff)
     rsdfac = read_conversions(scratch+sim+'/fastpm_%0.4f/'%aa)
-    print("RSD factor=",rsdfac)
     # Compute the power spectrum
     los      = [0,0,1]
     cpos     = cencat['Position']+cencat['Velocity']*los * rsdfac
@@ -82,7 +81,8 @@ def calc_pk1d(aa,suff):
     h1mass   = np.concatenate((ch1mass,sh1mass),axis=0)
     pm       = ParticleMesh(BoxSize=bs,Nmesh=[nc,nc,nc])
     h1mesh   = pm.paint(pos,mass=h1mass)    
-    pkh1h1   = FFTPower(h1mesh/h1mesh.cmean(),mode='1d',kmin=0.05,dk=0.02).power
+    pkh1h1   = FFTPower(h1mesh/h1mesh.cmean(),mode='1d',\
+                        kmin=0.025,dk=0.0125).power
     # Extract the quantities we want and write the file.
     kk   = pkh1h1['k']
     sn   = pkh1h1.attrs['shotnoise']
@@ -104,24 +104,26 @@ def calc_pkmu(aa,suff):
     cencat = BigFileCatalog(project+sim+'/fastpm_%0.4f/cencat'%aa)
     satcat = BigFileCatalog(project+sim+'/fastpm_%0.4f/satcat'%aa+suff)
     rsdfac = read_conversions(scratch+sim+'/fastpm_%0.4f/'%aa)
-    print("RSD factor=",rsdfac)
-    # Compute P(k,mu)
-    los      = [0,0,1]
-    cpos     = cencat['Position']+cencat['Velocity']*los * rsdfac
-    cmass    = cencat['Mass']
-    spos     = satcat['Position']+satcat['Velocity']*los * rsdfac
-    smass    = satcat['Mass']
-    pos      = np.concatenate((cpos,spos),axis=0)
-    ch1mass  = HI_hod(cmass,aa)   
-    sh1mass  = HI_hod(smass,aa)   
-    h1mass   = np.concatenate((ch1mass,sh1mass),axis=0)
-    pm       = ParticleMesh(BoxSize=bs,Nmesh=[nc,nc,nc])
-    h1mesh   = pm.paint(pos,mass=h1mass)    
-    pkh1h1   = FFTPower(h1mesh/h1mesh.cmean(),mode='2d',Nmu=4,los=los).power
-    # Extract what we want.
-    kk = pkh1h1.coords['k']
-    sn = pkh1h1.attrs['shotnoise']
-    pk = pkh1h1['power']
+    # Compute P(k,mu) -- we average this over the three los directions.
+    for i,los in enumerate([[0,0,1],[0,1,0],[1,0,0]]):
+        cpos     = cencat['Position']+cencat['Velocity']*los * rsdfac
+        cmass    = cencat['Mass']
+        spos     = satcat['Position']+satcat['Velocity']*los * rsdfac
+        smass    = satcat['Mass']
+        pos      = np.concatenate((cpos,spos),axis=0)
+        ch1mass  = HI_hod(cmass,aa)   
+        sh1mass  = HI_hod(smass,aa)   
+        h1mass   = np.concatenate((ch1mass,sh1mass),axis=0)
+        pm       = ParticleMesh(BoxSize=bs,Nmesh=[nc,nc,nc])
+        h1mesh   = pm.paint(pos,mass=h1mass)    
+        pkh1h1   = FFTPower(h1mesh/h1mesh.cmean(),mode='2d',Nmu=4,los=los).power
+        # Extract what we want.
+        kk = pkh1h1.coords['k']
+        sn = pkh1h1.attrs['shotnoise']
+        if i==0:
+            pk = pkh1h1['power'] / 3.0
+        else:
+            pk+= pkh1h1['power'] / 3.0
     # Write the results to a file.
     fout = open("HI_pks_mu_{:06.4f}.txt".format(aa),"w")
     fout.write("# Redshift space power spectrum in mu bins.\n")
@@ -149,7 +151,6 @@ def calc_pkll(aa,suff):
     cencat = BigFileCatalog(project+sim+'/fastpm_%0.4f/cencat'%aa)
     satcat = BigFileCatalog(project+sim+'/fastpm_%0.4f/satcat'%aa+suff)
     rsdfac = read_conversions(scratch+sim+'/fastpm_%0.4f/'%aa)
-    print("RSD factor=",rsdfac)
     #
     los      = [0,0,1]
     cpos     = cencat['Position']+cencat['Velocity']*los * rsdfac
