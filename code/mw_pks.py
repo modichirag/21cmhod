@@ -82,7 +82,7 @@ def calc_pk1d(aa,suff):
     h1mass   = np.concatenate((ch1mass,sh1mass),axis=0)
     pm       = ParticleMesh(BoxSize=bs,Nmesh=[nc,nc,nc])
     h1mesh   = pm.paint(pos,mass=h1mass)    
-    pkh1h1   = FFTPower(h1mesh/h1mesh.cmean(),mode='1d').power
+    pkh1h1   = FFTPower(h1mesh/h1mesh.cmean(),mode='1d',kmin=0.05,dk=0.02).power
     # Extract the quantities we want and write the file.
     kk   = pkh1h1['k']
     sn   = pkh1h1.attrs['shotnoise']
@@ -90,7 +90,7 @@ def calc_pk1d(aa,suff):
     fout = open("HI_pks_1d_{:6.4f}.txt".format(aa),"w")
     fout.write("# Subtracting SN={:15.5e}.\n".format(sn))
     fout.write("# {:>8s} {:>15s}\n".format("k","Pk_0_HI"))
-    for i in range(1,kk.size):
+    for i in range(kk.size):
         fout.write("{:10.5f} {:15.5e}\n".format(kk[i],pk[i]-sn))
     fout.close()
     #
