@@ -41,7 +41,7 @@ def calc_bias(aa,mcut,suff):
     dm = BigFileMesh(project+sim+'/fastpm_%0.4f/'%aa+\
                      '/dmesh_N%04d'%nc,'1').paint()
     pkmm  = FFTPower(dm/dm.cmean(), mode='1d').power
-    k,pkmm= pkmm['k'],pkmm['power']
+    k,pkmm= pkmm['k'],pkmm['power']  # Ignore shotnoise.
     #
     print('Read in central/satellite catalogs')
     cencat = BigFileCatalog(project+sim+'/fastpm_%0.4f/cencat'%aa)
@@ -55,7 +55,8 @@ def calc_bias(aa,mcut,suff):
     h1mass     = np.concatenate((ch1mass,sh1mass),axis=0)    
     pm         = ParticleMesh(BoxSize=bs,Nmesh=[nc,nc,nc])
     h1mesh     = pm.paint(pos,mass=h1mass)    
-    pkh1h1     = FFTPower(h1mesh/h1mesh.cmean(),mode='1d').power['power']
+    pkh1h1     = FFTPower(h1mesh/h1mesh.cmean(),mode='1d').power
+    pkh1h1     = pkh1h1['power']-pkh1h1.attrs['shotnoise']
     pkh1mm     = FFTPower(h1mesh/h1mesh.cmean(),\
                           second=dm/dm.cmean(),mode='1d').power['power']
     # Compute the biases.
