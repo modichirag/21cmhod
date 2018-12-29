@@ -9,7 +9,6 @@ scratch = '/global/cscratch1/sd/yfeng1/m3127/'
 project = '/project/projectdirs/m3127/H1mass/'
 cosmodef = {'omegam':0.309167, 'h':0.677, 'omegab':0.048}
 alist   = [0.1429,0.1538,0.1667,0.1818,0.2000,0.2222,0.2500,0.2857,0.3333]
-alist   = [0.2500]
 
 
 #Parameters, box size, number of mesh cells, simulation, ...
