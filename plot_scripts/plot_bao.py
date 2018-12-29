@@ -54,7 +54,7 @@ def make_bao_plot():
     # Tidy up the plot.
     for ii in range(ax.size):
         ax[ii].legend(ncol=2,framealpha=0.5)
-        ax[ii].set_xlim(0.05,0.5)
+        ax[ii].set_xlim(0.05,0.4)
         ax[ii].set_ylim(0.75,1.5)
         ax[ii].set_xscale('linear')
         ax[ii].set_yscale('linear')
