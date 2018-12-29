@@ -192,6 +192,6 @@ if __name__=="__main__":
     satsuff='-m1_5p0min-alpha_0p9'
     for aa in alist:
         calc_pk1d(aa,satsuff)
-        calc_pkmu(aa,satsuff)
-        calc_pkll(aa,satsuff)
+        #calc_pkmu(aa,satsuff)
+        #calc_pkll(aa,satsuff)
     #
