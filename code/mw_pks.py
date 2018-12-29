@@ -174,7 +174,7 @@ def calc_pkll(aa,suff):
     fout = open("HI_pks_ll_{:06.4f}.txt".format(aa),"w")
     fout.write("# Redshift space power spectrum multipoles.\n")
     fout.write("# Subtracting SN={:15.5e} from monopole.\n".format(sn))
-    fout.write("# {:>8s} {:>15s} {:>15s}\n".format("k","P0","P2"))
+    fout.write("# {:>8s} {:>15s} {:>15s} {:>15s}\n".format("k","P0","P2","P4"))
     for i in range(1,kk.size):
         fout.write("{:10.5f} {:15.5e} {:15.5e} {:15.5e}\n".\
                    format(kk[i],P0[i],P2[i],P4[i]))
