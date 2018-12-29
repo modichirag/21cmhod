@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #SBATCH -J simphod
-#SBATCH -N 16
+#SBATCH -N 32
 #SBATCH -p regular
 #SBATCH -t 02:00:00
 #SBATCH -o ./log_slurm/simphod.o%j
@@ -22,4 +22,4 @@ bcast-pip -U --no-deps https://github.com/bccp/nbodykit/archive/master.zip
 
 echo 'Finally starting'
 
-time srun -n 512 python -u simplehod.py
+time srun -n 1024 python -u simplecodes.py

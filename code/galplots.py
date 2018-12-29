@@ -16,9 +16,25 @@ bs, nc = 256, 256
 pm = ParticleMesh(BoxSize = bs, Nmesh = [nc, nc, nc])
 # sim = '/lowres/%d-9100-fixed'%256
 sim = '/highres/%d-9100-fixed'%2560
-aafiles = [0.1429, 0.1538, 0.1667, 0.1818, 0.2000, 0.2222, 0.2500, 0.2857, 0.3333]
+aafiles = np.array([0.1429, 0.1538, 0.1667, 0.1818, 0.2000, 0.2222, 0.2500, 0.2857, 0.3333])
 #aafiles = aafiles[:5]
-zzfiles = [round(tools.atoz(aa), 2) for aa in aafiles]
+zzfiles = np.array([round(tools.atoz(aa), 2) for aa in aafiles])
+
+subf = 'mcutfiddle'
+try: os.makedirs('./figs/%s'%subf)
+except:pass
+
+mcutf = np.ones_like(zzfiles)
+mcutf[-1] = 2
+mcutf[-2] = 0.5
+mcutf[-3] = 0.5
+mcutf[-4] = 0.8
+
+
+plt.plot(zzfiles, dohod.HI_mass(1, aafiles, 'mcut'), 'o')
+plt.plot(zzfiles, mcutf*dohod.HI_mass(1, aafiles, 'mcut'), 's')
+plt.yscale('log')
+plt.savefig('./figs/%s/mcut.png'%subf)         
 
 
 ##Halos and centrals
@@ -27,6 +43,23 @@ hpos, hmass, h1mass = {}, {}, {}
 cpos, cmass, ch1mass, chid = {}, {}, {}, {}
 
 
+def HI_masscutfiddle(mhalo,aa, mcutf=1.0):
+    """Makes a 21cm "mass" from a box of halo masses.
+    Use mcutf to fiddle with Mcut
+    """
+    print('Assigning weights')
+    zp1 = 1.0/aa
+    zz  = zp1-1
+    alp = (1+2*zz)/(2+2*zz)
+    norm = 2e9*np.exp(-1.9*zp1+0.07*zp1**2)
+
+    mcut= 1e10*(6.11-1.99*zp1+0.165*zp1**2)*mcutf
+    xx  = mhalo/mcut+1e-10
+    mHI = xx**alp * np.exp(-1/xx)
+    mHI*= norm
+
+    return(mHI)
+
 print('Read Halos and Centrals')
 for i, aa in enumerate(aafiles):
     zz = zzfiles[i]
@@ -34,8 +67,8 @@ for i, aa in enumerate(aafiles):
     start = time()
     halos = BigFileCatalog(dpath + sim+ '/fastpm_%0.4f/halocat/'%aa)
     cen = BigFileCatalog(dpath + sim+ '/fastpm_%0.4f/cencat/'%aa)
-    hmass[zz], h1mass[zz] = halos["Mass"].compute(), halos['H1mass'].compute()
-    cmass[zz], ch1mass[zz] = cen["Mass"].compute(), cen['H1mass'].compute()
+    hmass[zz], h1mass[zz] = halos["Mass"].compute(), HI_masscutfiddle(halos['Mass'].compute(), aa, mcutf[i])
+    cmass[zz], ch1mass[zz] = cen["Mass"].compute(), HI_masscutfiddle(cen['Mass'].compute(), aa, mcutf[i])
     hpos[zz], cpos[zz] = halos['Position'].compute(), cen['Position'].compute()
     chid[zz] = cen['HaloID'].compute()
     print('Time ', time()-start)
@@ -72,8 +105,9 @@ for iz, zz in enumerate(zzfiles):
 #for suff in ['-min_10p0h1-m1_10p0h1',  '-min_1p0h1-m1_20p0h1', '-min_5p0h1-m1_10p0h1', '-min_5p0h1-m1_50p0h1']:
 #for suff in ['-m1_1p0min-alpha_0p8', '-m1_5p0min-alpha_0p8', '-m1_10p0min-alpha_0p8', '-m1_50p0min-alpha_0p8']:
 #for suff in ['-m1_2p0min-alpha_0p9', '-m1_5p0min-alpha_0p9', '-m1_10p0min-alpha_0p9', '-m1_8p0min-alpha_0p9']:
-for suff in ['-mmin0p1_m1_5p0min-alpha_0p9', '-mmin0p1_m1_10p0min-alpha_0p9', '-mmin0p1_m1_20p0min-alpha_0p9', '-mmin0p1_m1_5p0min-alpha_0p8',\
-             '-mmin0p1_m1_10p0min-alpha_0p8', '-mmin0p1_m1_20p0min-alpha_0p8']:
+for suff in ['-m1_10p0min-alpha_0p8', '-m1_5p0min-alpha_0p8', '-m1_5p0min-alpha_0p9', '-m1_8p0min-alpha_0p9']:
+#for suff in ['-mmin0p1_m1_10p0min-alpha_0p9', '-mmin0p1_m1_20p0min-alpha_0p9', '-mmin0p1_m1_5p0min-alpha_0p8',\
+#             '-mmin0p1_m1_10p0min-alpha_0p8', '-mmin0p1_m1_20p0min-alpha_0p8']:
     print(suff)
     spos, smass, sh1mass, shid = {}, {}, {}, {}
 
@@ -83,7 +117,7 @@ for suff in ['-mmin0p1_m1_5p0min-alpha_0p9', '-mmin0p1_m1_10p0min-alpha_0p9', '-
         print(zz)
         start = time()
         sat = BigFileCatalog(dpath + sim+ '/fastpm_%0.4f/satcat'%aa+suff)
-        smass[zz], sh1mass[zz] = sat["Mass"].compute(), sat['H1mass'].compute()
+        smass[zz], sh1mass[zz] = sat["Mass"].compute(), HI_masscutfiddle(sat['Mass'].compute(), aa, mcutf[i])
         spos[zz] = sat['Position'].compute()
         shid[zz] = sat['HaloID'].compute()
         print(time()-start)
@@ -109,7 +143,7 @@ for suff in ['-mmin0p1_m1_5p0min-alpha_0p9', '-mmin0p1_m1_10p0min-alpha_0p9', '-
     plt.xlabel('M_h (M$_\odot$/h)')
     plt.ylabel('Number of satellites')
     plt.legend()
-    plt.savefig('./figs/m1_alpha/satcount%s'%suff)
+    plt.savefig('./figs/%s/satcount%s'%(subf, suff))
 
     ## Plot mass of HI in centrals and satellites
     fig, ax = plt.subplots(3, 3, figsize=(12, 12))
@@ -123,7 +157,7 @@ for suff in ['-mmin0p1_m1_5p0min-alpha_0p9', '-mmin0p1_m1_10p0min-alpha_0p9', '-
     for axis in ax[:, 0]:axis.set_ylabel('M$_{HI}$')
     for axis in ax[-1, :]:axis.set_xlabel('M$_{h}$')
     ax[0, 0].legend()
-    plt.savefig('./figs/m1_alpha/HIdist%s'%suff)
+    plt.savefig('./figs/%s/HIdist%s'%(subf, suff))
 
 
     ## Plot fraction of HI in centrals and satellites
@@ -138,7 +172,7 @@ for suff in ['-mmin0p1_m1_5p0min-alpha_0p9', '-mmin0p1_m1_10p0min-alpha_0p9', '-
     for axis in ax[:, 0]:axis.set_ylabel('M$_{HI}$')
     for axis in ax[-1, :]:axis.set_xlabel('M$_{h}$')
     ax[0, 0].legend()
-    plt.savefig('./figs/m1_alpha/HIdistratio%s'%suff)
+    plt.savefig('./figs/%s/HIdistratio%s'%(subf, suff))
 
 
     ## Plot mass function of centrals and satellites
@@ -152,7 +186,7 @@ for suff in ['-mmin0p1_m1_5p0min-alpha_0p9', '-mmin0p1_m1_10p0min-alpha_0p9', '-
     plt.legend(ncol=2, loc=1)
     plt.xlim(8.5, 12)
     plt.ylim(10, 2e7)
-    plt.savefig('./figs/m1_alpha/massfunc%s'%suff)
+    plt.savefig('./figs/%s/massfunc%s'%(subf, suff))
 
 
 
@@ -166,7 +200,7 @@ for suff in ['-mmin0p1_m1_5p0min-alpha_0p9', '-mmin0p1_m1_10p0min-alpha_0p9', '-
         b1h1 = pkh1m/pkm[zz]
         b1h1sq = pkh1/pkm[zz]
         #ofolder = dpath + '/%s/fastpm_%0.4f/'%(sim, aafiles[iz])
-        #np.savetxt(ofolder+'bias%s.txt'%suff, np.stack((k, b1h1, b1h1sq**0.5), axis=1), 
+        #np.savetxt(ofolder+'bias%s.txt'%(subf, suff), np.stack((k, b1h1, b1h1sq**0.5), axis=1), 
         #                                       header='k, pkh1xm/pkm, pkh1/pkm^0.5')
 
         ax[0].plot(k, b1h1, 'C%d'%iz, lw=1.5)
@@ -179,5 +213,5 @@ for suff in ['-mmin0p1_m1_5p0min-alpha_0p9', '-mmin0p1_m1_10p0min-alpha_0p9', '-
         ax[0].set_xscale('log')
         axis.set_ylim(1, 5)
         #axis.grid(which='both', lw=0.3)
-    fig.savefig('./figs/m1_alpha/bias%s.png'%suff)
+    fig.savefig('./figs/%s/bias%s.png'%(subf, suff))
 

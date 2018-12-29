@@ -23,7 +23,8 @@ zzfiles = [round(tools.atoz(aa), 2) for aa in aafiles]
 #Maybe set up to take in as args file?
 bs, nc = 256, 256
 #ncsim, sim, prefix = 256, 'lowres/%d-9100-fixed'%256, 'lowres'
-ncsim, sim, prefix = 2560, 'highres/%d-9100-fixed'%2560, 'highres'
+#ncsim, sim, prefix = 2560, 'highres/%d-9100-fixed'%2560, 'highres'
+ncsim, sim, prefix = 10240, 'highres/%d-9100-fixed'%10240, 'highres'
 
 
 
@@ -32,7 +33,7 @@ def readincatalog(aa, matter=False):
     if matter: dmcat = BigFileCatalog(scratch + sim + '/fastpm_%0.4f/'%aa, dataset='1')
     halocat = BigFileCatalog(scratch + sim + '/fastpm_%0.4f/'%aa, dataset='LL-0.200')
     mp = halocat.attrs['MassTable'][1]*1e10
-    print('Mass of particle is = %0.2e'%mp)
+    #print('Mass of particle is = %0.2e'%mp)
     halocat['Mass'] = halocat['Length'] * mp
     halocat['Position'] = halocat['Position']%bs # Wrapping positions assuming periodic boundary conditions
     if matter:
@@ -46,29 +47,36 @@ def make_galcat(aa, mmin, mcutc, m1, sigma=0.25, kappa=1, alpha=1, censuff=None,
     zz = tools.atoz(aa)
     print('\nRedshift = %0.2f'%zz)
     halocat = readincatalog(aa)
+    rank = halocat.comm.rank
     hmass = halocat['Mass'].compute()
-
+    print('In rank = %d, Catalog size = '%rank, hmass.size)
     #Do hod
     ofolder = project + '/%s/fastpm_%0.4f/'%(sim, aa)
+    try:
+        os.makedirs(os.path.dirname(ofolder))
+    except IOError:
+        pass
     
     #hoddMda = -0.1
     #mcut, m1 = mkhodp_linear(aa, apiv=0.6667, hod_dMda=hoddMda, mcut_apiv=10**13.35, m1_apiv=10 ** 12.80)
     
-    print('Mcut, m1 : ', np.log10(mcutc), np.log10(m1))
-    print('kappa  = ', kappa)
-    print('Halomass0 : ',np.log10(halocat['Mass'].compute()[1]))
-    print('Number of halos = ', hmass.size)
-    print('Number of halos above mMin = ', (hmass > mminh1).sum())
-    print('Number of halos above mcut = ', (hmass > mcutc).sum())
+    #print('Mcut, m1 : ', np.log10(mcutc), np.log10(m1))
+    #print('kappa  = ', kappa)
+    #print('Halomass0 : ',np.log10(halocat['Mass'].compute()[1]))
+    #print('Number of halos = ', hmass.size)
+    #print('Number of halos above mMin = ', (hmass > mminh1).sum())
+    #print('Number of halos above mcut = ', (hmass > mcutc).sum())
     start = time()
-    (ncen, cpos, cvel), (nsat, spos, svel) = hod(seed,halocat['Mass'].compute(), halocat['Position'].compute(), halocat['Velocity'].compute(),\
+    (ncen, cpos, cvel), (nsat, spos, svel) = hod(seed, hmass, halocat['Position'].compute(), halocat['Velocity'].compute(),\
                         conc=7, rvir=3, vdisp=1100, mcut=mcutc, m1=m1, sigma=0.25, \
                         kappa=kappa, alpha=alpha,vcen=0, vsat=0.5)
 
-    print('Time taken = ', time()-start)
+    print('In rank = %d, Time taken = '%rank, time()-start)
+    print('In rank = %d, Number of centrals = '%rank, ncen.sum())
+    print('In rank = %d, Number of satellites = '%rank, nsat.sum())
+    print('In rank = %d, Satellite occupancy: Max and mean = '%rank, nsat.max(), nsat.mean())
 
     hid = np.repeat(range(len(hmass)), ncen).astype(int)
-    print('Number of centrals = ', ncen.sum())
     #Assign mass to centrals
     cmass = hmass[hid]
     #Assign HI mass
@@ -78,8 +86,6 @@ def make_galcat(aa, mmin, mcutc, m1, sigma=0.25, kappa=1, alpha=1, censuff=None,
 
 
     hid = np.repeat(range(len(hmass)), nsat).astype(int)
-    print('Number of satellites = ', nsat.sum())
-    print('Satellite occupancy: Max and mean = ', nsat.max(), nsat.mean())
     #
     np.random.seed(seed)
     #Assign mass to satellites
@@ -107,25 +113,25 @@ if __name__=="__main__":
 
     for aa in aafiles[:]:
         mminh1 = dohod.HI_mass(None, aa, 'mcut')
-        mcutc = 1e14#0.1 *mminh1
+        mcutc = 1
         kappa = 0
         sigma = 0
  
         #sat hod : N = ((M_h-\kappa*mcut)/m1)**alpha
         zz = 1/aa-1
         mmin = 10**(11-0.4*np.array(zz))
-        mmin /= 10
-        alpha = 0.9
-        for m1 in [5, 10, 20]:
-            satsuff='-mmin0p1_m1_%dp%dmin-alpha_0p9'%(int(m1), (m1*10)%10)
-            print('\n', mmin, m1, satsuff, '\n')
-            m1m = m1*mmin
-            make_galcat(aa=aa, mmin=mmin, mcutc=mcutc, m1=m1m, sigma=sigma, kappa=kappa, alpha=alpha, censuff=None, satsuff=satsuff)
-
+        #mmin /= 10
         alpha = 0.8
-        for m1 in [5, 10, 20]:
-            satsuff='-mmin0p1_m1_%dp%dmin-alpha_0p8'%(int(m1), (m1*10)%10)
+        for m1 in [5.0]:
+            satsuff='-m1_%dp%dmin-alpha_0p8-8node'%(int(m1), (m1*10)%10)
             print('\n', mmin, m1, satsuff, '\n')
             m1m = m1*mmin
-            make_galcat(aa=aa, mmin=mmin, mcutc=mcutc, m1=m1m, sigma=sigma, kappa=kappa, alpha=alpha, censuff=None, satsuff=satsuff)
+            make_galcat(aa=aa, mmin=mmin, mcutc=mcutc, m1=m1m, sigma=sigma, kappa=kappa, alpha=alpha, censuff='-8node', satsuff=satsuff)
 
+#        alpha = 0.8
+#        for m1 in [5, 10, 20]:
+#            satsuff='-mmin0p1_m1_%dp%dmin-alpha_0p8'%(int(m1), (m1*10)%10)
+#            print('\n', mmin, m1, satsuff, '\n')
+#            m1m = m1*mmin
+#            make_galcat(aa=aa, mmin=mmin, mcutc=mcutc, m1=m1m, sigma=sigma, kappa=kappa, alpha=alpha, censuff=None, satsuff=satsuff)
+#
