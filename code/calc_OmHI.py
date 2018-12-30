@@ -57,10 +57,10 @@ def calc_OmHI(aa):
     ch1mass= HI_hod(cmass,aa)   
     sh1mass= HI_hod(smass,aa)   
     #mHI   = np.sum(ch1mass.compute())+np.sum(sh1mass.compute())
-    mHI    = ch1mass.sum()+sh1mass.sum()
+    mHI    = ch1mass.sum().compute()+sh1mass.sum().compute()
     # Compute effective nbar.
     #mHI2 = np.sum((ch1mass**2).compute())+np.sum((sh1mass**2).compute())
-    mHI2  = (ch1mass**2).sum()+(sh1mass**2).sum()
+    mHI2  = (ch1mass**2).sum().compute()+(sh1mass**2).sum().compute()
     nbar  = mHI**2/mHI2/Lbox**3
     # Convert to OmegaHI.
     rhoHI = mHI/Lbox**3
