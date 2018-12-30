@@ -71,18 +71,18 @@ def calc_pk1d(aa,suff):
     rsdfac = read_conversions(scratch+sim+'/fastpm_%0.4f/'%aa)
     # Compute the power spectrum
     los      = [0,0,1]
-    cpos     = cencat['Position']+cencat['Velocity']*los * rsdfac
-    cmass    = cencat['Mass']
-    spos     = satcat['Position']+satcat['Velocity']*los * rsdfac
-    smass    = satcat['Mass']
-    pos      = np.concatenate((cpos,spos),axis=0)
-    ch1mass  = HI_hod(cmass,aa)   
-    sh1mass  = HI_hod(smass,aa)   
-    h1mass   = np.concatenate((ch1mass,sh1mass),axis=0)
-    pm       = ParticleMesh(BoxSize=bs,Nmesh=[nc,nc,nc])
-    h1mesh   = pm.paint(pos,mass=h1mass)    
-    pkh1h1   = FFTPower(h1mesh/h1mesh.cmean(),mode='1d',\
-                        kmin=0.025,dk=0.0125).power
+    cencat['RSDpos'] = cencat['Position']+cencat['Velocity']*los * rsdfac
+    satcat['RSDpos'] = satcat['Position']+satcat['Velocity']*los * rsdfac
+    cencat['HImass'] = HI_hod(cencat['Mass'],aa,mcut)
+    satcat['HImass'] = HI_hod(satcat['Mass'],aa,mcut)
+    totHImass        = cencat['HImass'].sum().compute() +\
+                       satcat['HImass'].sum().compute()
+    cencat['HImass']/= totHImass/float(nc)**3
+    satcat['HImass']/= totHImass/float(nc)**3
+    allcat = MultipleSpeciesCatalog(['cen','sat'],cencat,satcat)
+    h1mesh  = allcat.to_mesh(BoxSize=bs,Nmesh=[nc,nc,nc],\
+                             position='RSDpos',weight='HImass')
+    pkh1h1   = FFTPower(h1mesh,mode='1d',kmin=0.025,dk=0.0125).power
     # Extract the quantities we want and write the file.
     kk   = pkh1h1['k']
     sn   = pkh1h1.attrs['shotnoise']
