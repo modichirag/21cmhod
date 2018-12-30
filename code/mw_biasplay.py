@@ -58,10 +58,7 @@ def calc_bias(aa,mcut,suff):
     allcat = MultipleSpeciesCatalog(['cen','sat'],cencat,satcat)
     #
     h1mesh     = allcat.to_mesh(BoxSize=bs,Nmesh=[nc,nc,nc],weight='HImass')
-    ###pkh1h1     = FFTPower(h1mesh/h1mesh.cmean(),mode='1d').power
     pkh1h1     = FFTPower(h1mesh,mode='1d').power
-    print("SN=",pkh1h1.attrs['shotnoise'])
-    print(pkh1h1.attrs)
     pkh1h1     = pkh1h1['power']-pkh1h1.attrs['shotnoise']
     pkh1mm     = FFTPower(h1mesh,second=dm,mode='1d').power['power']
     # Compute the biases.

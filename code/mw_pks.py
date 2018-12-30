@@ -162,8 +162,7 @@ def calc_pkll(aa,suff):
     allcat = MultipleSpeciesCatalog(['cen','sat'],cencat,satcat)
     h1mesh = allcat.to_mesh(BoxSize=bs,Nmesh=[nc,nc,nc],\
                              position='RSDpos',weight='HImass')
-    pkh1h1 = FFTPower(h1mesh/h1mesh.cmean(),mode='2d',Nmu=8,\
-                      los=los,poles=[0,2,4]).poles
+    pkh1h1 = FFTPower(h1mesh,mode='2d',Nmu=8,los=los,poles=[0,2,4]).poles
     # Extract the quantities of interest.
     kk = pkh1h1.coords['k']
     sn = pkh1h1.attrs['shotnoise']
