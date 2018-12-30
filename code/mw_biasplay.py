@@ -1,6 +1,6 @@
 import numpy as np
 from pmesh.pm     import ParticleMesh
-from nbodykit.lab import BigFileCatalog, BigFileMesh, FFTPower
+from nbodykit.lab import BigFileCatalog, MultipleSpeciesCatalog, BigFileMesh, FFTPower
 #
 #
 #Global, fixed things
@@ -38,27 +38,32 @@ def HI_hod(mhalo,aa,mcut=2e9):
 def calc_bias(aa,mcut,suff):
     '''Compute the bias(es) for the HI'''
     print('Read in DM mesh')
-    dm = BigFileMesh(project+sim+'/fastpm_%0.4f/'%aa+\
-                     '/dmesh_N%04d'%nc,'1').paint()
-    pkmm  = FFTPower(dm/dm.cmean(), mode='1d').power
+    dm    = BigFileMesh(project+sim+'/fastpm_%0.4f/'%aa+\
+                        '/dmesh_N%04d'%nc,'1').paint()
+    dm   /= dm.cmean()
+    pkmm  = FFTPower(dm,mode='1d').power
     k,pkmm= pkmm['k'],pkmm['power']  # Ignore shotnoise.
     #
     print('Read in central/satellite catalogs')
     cencat = BigFileCatalog(project+sim+'/fastpm_%0.4f/cencat'%aa)
     satcat = BigFileCatalog(project+sim+'/fastpm_%0.4f/satcat'%aa+suff)
     #
-    cpos,cmass = cencat['Position'],cencat['Mass']
-    spos,smass = satcat['Position'],satcat['Mass']
-    pos        = np.concatenate((cpos,spos),axis=0)
-    ch1mass    = HI_hod(cmass,aa,mcut)   
-    sh1mass    = HI_hod(smass,aa,mcut)   
-    h1mass     = np.concatenate((ch1mass,sh1mass),axis=0)    
-    pm         = ParticleMesh(BoxSize=bs,Nmesh=[nc,nc,nc])
-    h1mesh     = pm.paint(pos,mass=h1mass)    
-    pkh1h1     = FFTPower(h1mesh/h1mesh.cmean(),mode='1d').power
+    cencat['HImass'] = HI_hod(cencat['Mass'],aa,mcut)   
+    satcat['HImass'] = HI_hod(satcat['Mass'],aa,mcut)   
+    totHImass        = cencat['HImass'].sum().compute() +\
+                       satcat['HImass'].sum().compute()
+    cencat['HImass']/= totHImass/float(nc)**3
+    satcat['HImass']/= totHImass/float(nc)**3
+    #
+    allcat = MultipleSpeciesCatalog(['cen','sat'],cencat,satcat)
+    #
+    h1mesh     = allcat.to_mesh(BoxSize=bs,Nmesh=[nc,nc,nc],weight='HImass')
+    ###pkh1h1     = FFTPower(h1mesh/h1mesh.cmean(),mode='1d').power
+    pkh1h1     = FFTPower(h1mesh,mode='1d').power
+    print("SN=",pkh1h1.attrs['shotnoise'])
+    print(pkh1h1.attrs)
     pkh1h1     = pkh1h1['power']-pkh1h1.attrs['shotnoise']
-    pkh1mm     = FFTPower(h1mesh/h1mesh.cmean(),\
-                          second=dm/dm.cmean(),mode='1d').power['power']
+    pkh1mm     = FFTPower(h1mesh,second=dm,mode='1d').power['power']
     # Compute the biases.
     b1x = np.abs(pkh1mm/(pkmm+1e-10))
     b1a = np.abs(pkh1h1/(pkmm+1e-10))**0.5
