@@ -73,8 +73,8 @@ def calc_pk1d(aa,suff):
     los      = [0,0,1]
     cencat['RSDpos'] = cencat['Position']+cencat['Velocity']*los * rsdfac
     satcat['RSDpos'] = satcat['Position']+satcat['Velocity']*los * rsdfac
-    cencat['HImass'] = HI_hod(cencat['Mass'],aa,mcut)
-    satcat['HImass'] = HI_hod(satcat['Mass'],aa,mcut)
+    cencat['HImass'] = HI_hod(cencat['Mass'],aa)
+    satcat['HImass'] = HI_hod(satcat['Mass'],aa)
     totHImass        = cencat['HImass'].sum().compute() +\
                        satcat['HImass'].sum().compute()
     cencat['HImass']/= totHImass/float(nc)**3
