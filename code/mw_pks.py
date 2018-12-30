@@ -1,7 +1,7 @@
 import numpy as np
 import re
 from pmesh.pm     import ParticleMesh
-from nbodykit.lab import BigFileCatalog, FFTPower
+from nbodykit.lab import BigFileCatalog, MultipleSpeciesCatalog, FFTPower
 #
 #
 #Global, fixed things
