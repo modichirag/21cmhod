@@ -5,15 +5,18 @@ from nbodykit.lab import BigFileCatalog, MultipleSpeciesCatalog, FFTPower
 #
 #
 #Global, fixed things
-scratch = '/global/cscratch1/sd/yfeng1/m3127/'
-project = '/project/projectdirs/m3127/H1mass/'
+scratch1 = '/global/cscratch1/sd/yfeng1/m3127/'
+scratch2 = '/global/cscratch1/sd/chmodi/m3127/H1mass/'
+project  = '/project/projectdirs/m3127/H1mass/'
 cosmodef = {'omegam':0.309167, 'h':0.677, 'omegab':0.048}
-alist   = [0.1429,0.1538,0.1667,0.1818,0.2000,0.2222,0.2500,0.2857,0.3333]
+alist    = [0.1429,0.1538,0.1667,0.1818,0.2000,0.2222,0.2500,0.2857,0.3333]
 
 
 #Parameters, box size, number of mesh cells, simulation, ...
 bs, nc = 256, 512
 ncsim, sim, prefix = 2560, 'highres/%d-9100-fixed'%2560, 'highres'
+bs,nc,ncsim = 1024, 1024, 10240
+sim,prefix  = 'highres/%d-9100-fixed'%ncsim, 'highres'
 
 
 
@@ -66,11 +69,11 @@ def read_conversions(db):
 def calc_pk1d(aa,suff):
     '''Compute the 1D redshift-space P(k) for the HI'''
     print('Read in central/satellite catalogs')
-    cencat = BigFileCatalog(project+sim+'/fastpm_%0.4f/cencat'%aa)
-    satcat = BigFileCatalog(project+sim+'/fastpm_%0.4f/satcat'%aa+suff)
+    cencat = BigFileCatalog(scratch2+sim+'/fastpm_%0.4f/cencat-16node'%aa)
+    satcat = BigFileCatalog(scratch2+sim+'/fastpm_%0.4f/satcat'%aa+suff)
     rsdfac = read_conversions(scratch+sim+'/fastpm_%0.4f/'%aa)
     # Compute the power spectrum
-    los      = [0,0,1]
+    los = [0,0,1]
     cencat['RSDpos'] = cencat['Position']+cencat['Velocity']*los * rsdfac
     satcat['RSDpos'] = satcat['Position']+satcat['Velocity']*los * rsdfac
     cencat['HImass'] = HI_hod(cencat['Mass'],aa)
@@ -79,7 +82,7 @@ def calc_pk1d(aa,suff):
                        satcat['HImass'].sum().compute()
     cencat['HImass']/= totHImass/float(nc)**3
     satcat['HImass']/= totHImass/float(nc)**3
-    allcat = MultipleSpeciesCatalog(['cen','sat'],cencat,satcat)
+    allcat  = MultipleSpeciesCatalog(['cen','sat'],cencat,satcat)
     h1mesh  = allcat.to_mesh(BoxSize=bs,Nmesh=[nc,nc,nc],\
                              position='RSDpos',weight='HImass')
     pkh1h1   = FFTPower(h1mesh,mode='1d',kmin=0.025,dk=0.0125).power
@@ -101,11 +104,11 @@ def calc_pk1d(aa,suff):
 def calc_pkmu(aa,suff):
     '''Compute the redshift-space P(k) for the HI in mu bins'''
     print('Read in central/satellite catalogs')
-    cencat = BigFileCatalog(project+sim+'/fastpm_%0.4f/cencat'%aa)
-    satcat = BigFileCatalog(project+sim+'/fastpm_%0.4f/satcat'%aa+suff)
+    cencat = BigFileCatalog(scratch2+sim+'/fastpm_%0.4f/cencat-16node'%aa)
+    satcat = BigFileCatalog(scratch2+sim+'/fastpm_%0.4f/satcat'%aa+suff)
     rsdfac = read_conversions(scratch+sim+'/fastpm_%0.4f/'%aa)
     # Compute P(k,mu).
-    los    = [0,0,1]
+    los = [0,0,1]
     cencat['RSDpos'] = cencat['Position']+cencat['Velocity']*los * rsdfac
     satcat['RSDpos'] = satcat['Position']+satcat['Velocity']*los * rsdfac
     cencat['HImass'] = HI_hod(cencat['Mass'],aa)
@@ -146,11 +149,11 @@ def calc_pkmu(aa,suff):
 def calc_pkll(aa,suff):
     '''Compute the redshift-space P_ell(k) for the HI'''
     print('Read in central/satellite catalogs')
-    cencat = BigFileCatalog(project+sim+'/fastpm_%0.4f/cencat'%aa)
-    satcat = BigFileCatalog(project+sim+'/fastpm_%0.4f/satcat'%aa+suff)
+    cencat = BigFileCatalog(scratch2+sim+'/fastpm_%0.4f/cencat-16node'%aa)
+    satcat = BigFileCatalog(scratch2+sim+'/fastpm_%0.4f/satcat'%aa+suff)
     rsdfac = read_conversions(scratch+sim+'/fastpm_%0.4f/'%aa)
     #
-    los    = [0,0,1]
+    los = [0,0,1]
     cencat['RSDpos'] = cencat['Position']+cencat['Velocity']*los * rsdfac
     satcat['RSDpos'] = satcat['Position']+satcat['Velocity']*los * rsdfac
     cencat['HImass'] = HI_hod(cencat['Mass'],aa)
@@ -189,6 +192,7 @@ if __name__=="__main__":
     satsuff='-mmin0p1_m1_5p0min-alpha_0p9'
     satsuff='-m1_8p0min-alpha_0p9'
     satsuff='-m1_5p0min-alpha_0p9'
+    satsuff='-m1_5p0min-alpha_0p8-16node'
     for aa in alist:
         calc_pk1d(aa,satsuff)
         #calc_pkmu(aa,satsuff)
