@@ -2,6 +2,12 @@ import numpy as np
 import re
 from pmesh.pm     import ParticleMesh
 from nbodykit.lab import BigFileCatalog, MultipleSpeciesCatalog, FFTPower
+
+from nbodykit import setup_logging
+
+# enable logging, we have some clue what's going on.
+setup_logging('info')
+
 #
 #
 #Global, fixed things
