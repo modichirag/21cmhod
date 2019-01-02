@@ -71,7 +71,7 @@ def calc_pk1d(aa,suff):
     print('Read in central/satellite catalogs')
     cencat = BigFileCatalog(scratch2+sim+'/fastpm_%0.4f/cencat-16node'%aa)
     satcat = BigFileCatalog(scratch2+sim+'/fastpm_%0.4f/satcat'%aa+suff)
-    rsdfac = read_conversions(scratch+sim+'/fastpm_%0.4f/'%aa)
+    rsdfac = read_conversions(scratch1+sim+'/fastpm_%0.4f/'%aa)
     # Compute the power spectrum
     los = [0,0,1]
     cencat['RSDpos'] = cencat['Position']+cencat['Velocity']*los * rsdfac
@@ -106,7 +106,7 @@ def calc_pkmu(aa,suff):
     print('Read in central/satellite catalogs')
     cencat = BigFileCatalog(scratch2+sim+'/fastpm_%0.4f/cencat-16node'%aa)
     satcat = BigFileCatalog(scratch2+sim+'/fastpm_%0.4f/satcat'%aa+suff)
-    rsdfac = read_conversions(scratch+sim+'/fastpm_%0.4f/'%aa)
+    rsdfac = read_conversions(scratch1+sim+'/fastpm_%0.4f/'%aa)
     # Compute P(k,mu).
     los = [0,0,1]
     cencat['RSDpos'] = cencat['Position']+cencat['Velocity']*los * rsdfac
@@ -151,7 +151,7 @@ def calc_pkll(aa,suff):
     print('Read in central/satellite catalogs')
     cencat = BigFileCatalog(scratch2+sim+'/fastpm_%0.4f/cencat-16node'%aa)
     satcat = BigFileCatalog(scratch2+sim+'/fastpm_%0.4f/satcat'%aa+suff)
-    rsdfac = read_conversions(scratch+sim+'/fastpm_%0.4f/'%aa)
+    rsdfac = read_conversions(scratch1+sim+'/fastpm_%0.4f/'%aa)
     #
     los = [0,0,1]
     cencat['RSDpos'] = cencat['Position']+cencat['Velocity']*los * rsdfac
@@ -195,6 +195,6 @@ if __name__=="__main__":
     satsuff='-m1_5p0min-alpha_0p8-16node'
     for aa in alist:
         calc_pk1d(aa,satsuff)
-        #calc_pkmu(aa,satsuff)
-        #calc_pkll(aa,satsuff)
+        calc_pkmu(aa,satsuff)
+        calc_pkll(aa,satsuff)
     #
