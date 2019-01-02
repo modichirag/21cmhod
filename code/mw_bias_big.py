@@ -1,7 +1,7 @@
 import numpy as np
 from pmesh.pm     import ParticleMesh
-from nbodykit.lab import BigFileCatalog, MultipleSpeciesCatalog, BigFileMesh, FFTPower
-#
+from nbodykit.lab import BigFileCatalog, MultipleSpeciesCatalog,\
+                         BigFileMesh, FFTPower
 #
 #Global, fixed things
 scratch1 = '/global/cscratch1/sd/yfeng1/m3127/'
@@ -15,6 +15,10 @@ alist   = [0.1429,0.1538,0.1667,0.1818,0.2000,0.2222,0.2500,0.2857,0.3333]
 #Parameters, box size, number of mesh cells, simulation, ...
 bs,nc,ncsim = 1024, 1024, 10240
 sim,prefix  = 'highres/%d-9100-fixed'%ncsim, 'highres'
+
+# It's useful to have my rank for printing...
+pm = ParticleMesh(BoxSize=bs, Nmesh=[nc, nc, nc])
+rank = pm.comm.rank
 
 
 
@@ -38,41 +42,42 @@ def HI_hod(mhalo,aa,mcut=2e9):
 
 def calc_bias(aa,mcut,suff):
     '''Compute the bias(es) for the HI'''
-    print("Processing a={:.4f}...".format(aa))
-    print('Reading DM mesh...')
+    if rank==0:
+        print("Processing a={:.4f}...".format(aa))
+        print('Reading DM mesh...')
     dm    = BigFileMesh(scratch1+sim+'/fastpm_%0.4f/'%aa+\
                         '/1-mesh/N%04d'%nc,'').paint()
     dm   /= dm.cmean()
-    print('Computing DM P(k)...')
+    if rank==0: print('Computing DM P(k)...')
     pkmm  = FFTPower(dm,mode='1d').power
     k,pkmm= pkmm['k'],pkmm['power']  # Ignore shotnoise.
-    print('Done.')
+    if rank==0: print('Done.')
     #
-    print('Reading central/satellite catalogs...')
+    if rank==0: print('Reading central/satellite catalogs...')
     cencat = BigFileCatalog(scratch2+sim+'/fastpm_%0.4f/cencat-16node'%aa)
     satcat = BigFileCatalog(scratch2+sim+'/fastpm_%0.4f/satcat'%aa+suff)
-    print('Catalogs read.')
+    if rank==0: print('Catalogs read.')
     #
-    print('Computing HI masses...')
+    if rank==0: print('Computing HI masses...')
     cencat['HImass'] = HI_hod(cencat['Mass'],aa,mcut)   
     satcat['HImass'] = HI_hod(satcat['Mass'],aa,mcut)   
     totHImass        = cencat['HImass'].sum().compute() +\
                        satcat['HImass'].sum().compute()
     cencat['HImass']/= totHImass/float(nc)**3
     satcat['HImass']/= totHImass/float(nc)**3
-    print('HI masses done.')
+    if rank==0: print('HI masses done.')
     #
-    print('Combining catalogs and computing P(k)...')
+    if rank==0: print('Combining catalogs and computing P(k)...')
     allcat = MultipleSpeciesCatalog(['cen','sat'],cencat,satcat)
     h1mesh = allcat.to_mesh(BoxSize=bs,Nmesh=[nc,nc,nc],weight='HImass')
     pkh1h1 = FFTPower(h1mesh,mode='1d').power
     pkh1h1 = pkh1h1['power']-pkh1h1.attrs['shotnoise']
     pkh1mm = FFTPower(h1mesh,second=dm,mode='1d').power['power']
-    print('Done.')
+    if rank==0: print('Done.')
     # Compute the biases.
     b1x = np.abs(pkh1mm/(pkmm+1e-10))
     b1a = np.abs(pkh1h1/(pkmm+1e-10))**0.5
-    print("Finishing processing a={:.4f}.".format(aa))
+    if rank==0: print("Finishing processing a={:.4f}.".format(aa))
     return(k,b1x,b1a,np.abs(pkmm))
     #
 
@@ -81,10 +86,11 @@ def calc_bias(aa,mcut,suff):
     
 
 if __name__=="__main__":
-    print('Starting')
     satsuff='-m1_5p0min-alpha_0p8-16node'
-    flog = open("HI_bias_vs_z.txt","w")
-    flog.write("# {:>4s} {:>12s} {:>6s}\n".format("z","Mcut","b"))
+    if rank==0:
+        print('Starting')
+        flog = open("HI_bias_vs_z.txt","w")
+        flog.write("# {:>4s} {:>12s} {:>6s}\n".format("z","Mcut","b"))
     for aa in alist:
         zz   = 1.0/aa-1.0
         mcut = 2e10*aa
@@ -94,17 +100,17 @@ if __name__=="__main__":
         mcut = 1e9*( 1.8 + 15*(3*aa)**8 )
         kk,b1x,b1a,pkmm = calc_bias(aa,mcut,satsuff)
         #
-        fout = open("HI_bias_{:6.4f}.txt".format(aa),"w")
-        fout.write("# Mcut={:12.4e}Msun/h.\n".format(mcut))
-        fout.write("# {:>8s} {:>10s} {:>10s} {:>15s}\n".\
-                   format("k","b1_x","b1_a","Pkmm"))
-        for i in range(1,kk.size):
-            fout.write("{:10.5f} {:10.5f} {:10.5f} {:15.5e}\n".\
-                       format(kk[i],b1x[i],b1a[i],pkmm[i]))
-        fout.close()
-        #
-        bavg = np.mean(b1x[1:10])
-        flog.write("{:6.2f} {:12.4e} {:6.3f}\n".format(1/aa-1,mcut,bavg))
-        flog.flush()
-    flog.close()
+        if rank==0:
+            fout = open("HI_bias_{:6.4f}.txt".format(aa),"w")
+            fout.write("# Mcut={:12.4e}Msun/h.\n".format(mcut))
+            fout.write("# {:>8s} {:>10s} {:>10s} {:>15s}\n".\
+                       format("k","b1_x","b1_a","Pkmm"))
+            for i in range(1,kk.size):
+                fout.write("{:10.5f} {:10.5f} {:10.5f} {:15.5e}\n".\
+                           format(kk[i],b1x[i],b1a[i],pkmm[i]))
+            fout.close()
+            bavg = np.mean(b1x[1:10])
+            flog.write("{:6.2f} {:12.4e} {:6.3f}\n".format(1/aa-1,mcut,bavg))
+            flog.flush()
+    if rank==0: flog.close()
     #
