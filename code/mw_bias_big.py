@@ -38,33 +38,41 @@ def HI_hod(mhalo,aa,mcut=2e9):
 
 def calc_bias(aa,mcut,suff):
     '''Compute the bias(es) for the HI'''
-    print('Read in DM mesh')
+    print("Processing a={:.4f}...".format(aa))
+    print('Reading DM mesh...')
     dm    = BigFileMesh(scratch1+sim+'/fastpm_%0.4f/'%aa+\
                         '/1-mesh/N%04d'%nc,'').paint()
     dm   /= dm.cmean()
+    print('Computing DM P(k)...')
     pkmm  = FFTPower(dm,mode='1d').power
     k,pkmm= pkmm['k'],pkmm['power']  # Ignore shotnoise.
+    print('Done.')
     #
-    print('Read in central/satellite catalogs')
+    print('Reading central/satellite catalogs...')
     cencat = BigFileCatalog(scratch2+sim+'/fastpm_%0.4f/cencat-16node'%aa)
     satcat = BigFileCatalog(scratch2+sim+'/fastpm_%0.4f/satcat'%aa+suff)
+    print('Catalogs read.')
     #
+    print('Computing HI masses...')
     cencat['HImass'] = HI_hod(cencat['Mass'],aa,mcut)   
     satcat['HImass'] = HI_hod(satcat['Mass'],aa,mcut)   
     totHImass        = cencat['HImass'].sum().compute() +\
                        satcat['HImass'].sum().compute()
     cencat['HImass']/= totHImass/float(nc)**3
     satcat['HImass']/= totHImass/float(nc)**3
+    print('HI masses done.')
     #
+    print('Combining catalogs and computing P(k)...')
     allcat = MultipleSpeciesCatalog(['cen','sat'],cencat,satcat)
-    #
-    h1mesh     = allcat.to_mesh(BoxSize=bs,Nmesh=[nc,nc,nc],weight='HImass')
-    pkh1h1     = FFTPower(h1mesh,mode='1d').power
-    pkh1h1     = pkh1h1['power']-pkh1h1.attrs['shotnoise']
-    pkh1mm     = FFTPower(h1mesh,second=dm,mode='1d').power['power']
+    h1mesh = allcat.to_mesh(BoxSize=bs,Nmesh=[nc,nc,nc],weight='HImass')
+    pkh1h1 = FFTPower(h1mesh,mode='1d').power
+    pkh1h1 = pkh1h1['power']-pkh1h1.attrs['shotnoise']
+    pkh1mm = FFTPower(h1mesh,second=dm,mode='1d').power['power']
+    print('Done.')
     # Compute the biases.
     b1x = np.abs(pkh1mm/(pkmm+1e-10))
     b1a = np.abs(pkh1h1/(pkmm+1e-10))**0.5
+    print("Finishing processing a={:.4f}.".format(aa))
     return(k,b1x,b1a,np.abs(pkmm))
     #
 
