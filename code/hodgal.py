@@ -14,16 +14,20 @@ from time import time
 #Global, fixed things
 scratch = '/global/cscratch1/sd/yfeng1/m3127/'
 project = '/project/projectdirs/m3127/H1mass/'
+myscratch = '/global/cscratch1/sd/chmodi/m3127/H1mass/'
+
 cosmodef = {'omegam':0.309167, 'h':0.677, 'omegab':0.048}
 aafiles = [0.1429, 0.1538, 0.1667, 0.1818, 0.2000, 0.2222, 0.2500, 0.2857, 0.3333]
-#aafiles = aafiles[4:]
+#aafiles = aafiles[:2]
+#aafiles = [0.2222]
 zzfiles = [round(tools.atoz(aa), 2) for aa in aafiles]
 
 #Paramteres
 #Maybe set up to take in as args file?
-bs, nc = 256, 256
+#bs, nc = 256, 256
 #ncsim, sim, prefix = 256, 'lowres/%d-9100-fixed'%256, 'lowres'
 #ncsim, sim, prefix = 2560, 'highres/%d-9100-fixed'%2560, 'highres'
+bs, nc = 1024, 1024
 ncsim, sim, prefix = 10240, 'highres/%d-9100-fixed'%10240, 'highres'
 
 
@@ -45,13 +49,14 @@ def readincatalog(aa, matter=False):
 def make_galcat(aa, mmin, mcutc, m1, sigma=0.25, kappa=1, alpha=1, censuff=None, satsuff=None, seed=3333):
     '''do HOD with Zheng model using nbodykit'''
     zz = tools.atoz(aa)
-    print('\nRedshift = %0.2f'%zz)
     halocat = readincatalog(aa)
     rank = halocat.comm.rank
+    if rank == 0: print('\n ############## Redshift = %0.2f ############## \n'%zz)
+
     hmass = halocat['Mass'].compute()
     print('In rank = %d, Catalog size = '%rank, hmass.size)
     #Do hod
-    ofolder = project + '/%s/fastpm_%0.4f/'%(sim, aa)
+    ofolder = myscratch + '/%s/fastpm_%0.4f/'%(sim, aa)
     try:
         os.makedirs(os.path.dirname(ofolder))
     except IOError:
@@ -67,28 +72,31 @@ def make_galcat(aa, mmin, mcutc, m1, sigma=0.25, kappa=1, alpha=1, censuff=None,
     #print('Number of halos above mMin = ', (hmass > mminh1).sum())
     #print('Number of halos above mcut = ', (hmass > mcutc).sum())
     start = time()
-    (ncen, cpos, cvel), (nsat, spos, svel) = hod(seed, hmass, halocat['Position'].compute(), halocat['Velocity'].compute(),\
+    (ncen, cpos, cvel), (nsat, spos, svel) = hod(seed*rank, hmass, halocat['Position'].compute(), halocat['Velocity'].compute(),\
                         conc=7, rvir=3, vdisp=1100, mcut=mcutc, m1=m1, sigma=0.25, \
                         kappa=kappa, alpha=alpha,vcen=0, vsat=0.5)
 
     print('In rank = %d, Time taken = '%rank, time()-start)
-    print('In rank = %d, Number of centrals = '%rank, ncen.sum())
-    print('In rank = %d, Number of satellites = '%rank, nsat.sum())
+    print('In rank = %d, Number of centrals & satellites = '%rank, ncen.sum(), nsat.sum())
     print('In rank = %d, Satellite occupancy: Max and mean = '%rank, nsat.max(), nsat.mean())
-
-    hid = np.repeat(range(len(hmass)), ncen).astype(int)
+    #
     #Assign mass to centrals
+    hid = np.repeat(range(len(hmass)), ncen).astype(int)
     cmass = hmass[hid]
     #Assign HI mass
-    ch1mass = dohod.HI_mass(cmass, aa)
-    cencat = ArrayCatalog({'Position':cpos, 'Velocity':cvel, 'Mass':cmass, 'H1mass':ch1mass, 'HaloID':hid}, 
+    #ch1mass = dohod.HI_mass(cmass, aa)
+    cencat = ArrayCatalog({'Position':cpos, 'Velocity':cvel, 'Mass':cmass,  'HaloID':hid}, 
                           BoxSize=halocat.attrs['BoxSize'], Nmesh=halocat.attrs['NC'])
 
-
-    hid = np.repeat(range(len(hmass)), nsat).astype(int)
+    if censuff is not None:
+        colsave = [cols for cols in cencat.columns]
+        cencat.save(ofolder+'cencat'+censuff, colsave)
+    
     #
-    np.random.seed(seed)
     #Assign mass to satellites
+    hid = np.repeat(range(len(hmass)), nsat).astype(int)
+    np.random.seed(seed*rank)
+
     smass = np.random.uniform(size=hid.size)
     mmax = hmass[hid]/3.
     mmin = np.ones_like(mmax)*mmin
@@ -97,16 +105,14 @@ def make_galcat(aa, mmin, mcutc, m1, sigma=0.25, kappa=1, alpha=1, censuff=None,
     smass = mmin * mmax / ((1-smass)*mmax + smass*mmin)
     #smass[smass>mmax] = 0
     #Assign HI mass
-    sh1mass = dohod.HI_mass(smass, aa)
+    #sh1mass = dohod.HI_mass(smass, aa)
 
-    satcat = ArrayCatalog({'Position':spos, 'Velocity':svel, 'Mass':smass, 'H1mass':sh1mass, 'HaloID':hid}, 
+    satcat = ArrayCatalog({'Position':spos, 'Velocity':svel, 'Mass':smass,  'HaloID':hid}, 
                           BoxSize=halocat.attrs['BoxSize'], Nmesh=halocat.attrs['NC'])
-    if censuff is not None:
-        colsave = [cols for cols in cencat.columns]
-        cencat.save(ofolder+'cencat'+censuff, colsave)
     if satsuff is not None:
         colsave = [cols for cols in satcat.columns]
         satcat.save(ofolder+'satcat'+satsuff, colsave)
+
 #
 
 if __name__=="__main__":
@@ -123,10 +129,10 @@ if __name__=="__main__":
         #mmin /= 10
         alpha = 0.8
         for m1 in [5.0]:
-            satsuff='-m1_%dp%dmin-alpha_0p8-8node'%(int(m1), (m1*10)%10)
-            print('\n', mmin, m1, satsuff, '\n')
+            satsuff='-m1_%dp%dmin-alpha_0p8-16node'%(int(m1), (m1*10)%10)
+            #print('\n', mmin, m1, satsuff, '\n')
             m1m = m1*mmin
-            make_galcat(aa=aa, mmin=mmin, mcutc=mcutc, m1=m1m, sigma=sigma, kappa=kappa, alpha=alpha, censuff='-8node', satsuff=satsuff)
+            make_galcat(aa=aa, mmin=mmin, mcutc=mcutc, m1=m1m, sigma=sigma, kappa=kappa, alpha=alpha, censuff='-16node', satsuff=satsuff)
 
 #        alpha = 0.8
 #        for m1 in [5, 10, 20]:

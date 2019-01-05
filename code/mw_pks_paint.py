@@ -11,7 +11,7 @@ scratch2 = '/global/cscratch1/sd/chmodi/m3127/H1mass/'
 project  = '/project/projectdirs/m3127/H1mass/'
 cosmodef = {'omegam':0.309167, 'h':0.677, 'omegab':0.048}
 alist    = [0.1429,0.1538,0.1667,0.1818,0.2000,0.2222,0.2500,0.2857,0.3333]
-alist    = [0.2222,0.2500,0.2857,0.3333]
+#alist    = [0.2222,0.2500,0.2857,0.3333]
 
 
 #Parameters, box size, number of mesh cells, simulation, ...
@@ -69,39 +69,12 @@ def read_conversions(db):
 
 
 
-def calc_pk1d(aa,suff):
+def calc_pkreal(aa,h1mesh):
     '''Compute the 1D redshift-space P(k) for the HI'''
-    if rank ==0 : print('Read in central/satellite catalogs')
-    cencat = BigFileCatalog(scratch2+sim+'/fastpm_%0.4f/cencat-16node'%aa)
-    satcat = BigFileCatalog(scratch2+sim+'/fastpm_%0.4f/satcat'%aa+suff)
-    rsdfac = read_conversions(scratch1+sim+'/fastpm_%0.4f/'%aa)
-    # Compute the power spectrum
-    los = [0,0,1]
-    cencat['RSDpos'] = cencat['Position']+cencat['Velocity']*los * rsdfac
-    satcat['RSDpos'] = satcat['Position']+satcat['Velocity']*los * rsdfac
-    start = time()
-    cencat['HImass'] = HI_hod(cencat['Mass'],aa)
-    satcat['HImass'] = HI_hod(satcat['Mass'],aa)
-    totHImass        = cencat['HImass'].sum().compute() +\
-                       satcat['HImass'].sum().compute()
-    end = time()
-    if rank ==0 : print('Time taken to assign mass = ', end - start)
-    
-    cencat['HImass']/= totHImass/float(nc)**3
-    satcat['HImass']/= totHImass/float(nc)**3
-    allcat  = MultipleSpeciesCatalog(['cen','sat'],cencat,satcat)
-    start = time()
-    h1mesh  = allcat.to_mesh(BoxSize=bs,Nmesh=[nc,nc,nc],\
-                             position='RSDpos',weight='HImass')
-    #pkh1h1   = FFTPower(h1mesh,mode='1d',kmin=0.025,dk=0.0125).power
 
-    cenmesh = pm.paint(cencat['RSDpos'], mass=cencat['HImass'])
-    satmesh = pm.paint(satcat['RSDpos'], mass=satcat['HImass'])
-    h1mesh = cenmesh + satmesh
-    end = time()
-    if rank ==0 : print('Time taken to mesh = ', end - start)
     start = time()
-    pkh1h1   = FFTPower(h1mesh,mode='1d',kmin=0.025,dk=0.0125).power
+    #pkh1h1   = FFTPower(h1mesh,mode='1d',kmin=0.025,dk=0.0125).power
+    pkh1h1   = FFTPower(h1mesh,mode='1d').power
     end = time()
     if rank ==0 : print('Time taken to power = ', end - start)
     # Extract the quantities we want and write the file.
@@ -109,7 +82,29 @@ def calc_pk1d(aa,suff):
     sn   = pkh1h1.attrs['shotnoise']
     pk   = np.abs(pkh1h1['power'])
     if rank ==0 : 
-        fout = open("../data/HI_pks_1d_{:6.4f}.txt".format(aa),"w")
+        fout = open("../data/L{:04d}/HI_pkr_1d_{:6.4f}.txt".format(bs, aa),"w")
+        fout.write("# Subtracting SN={:15.5e}.\n".format(sn))
+        fout.write("# {:>8s} {:>15s}\n".format("k","Pk_0_HI"))
+        for i in range(kk.size):
+            fout.write("{:10.5f} {:15.5e}\n".format(kk[i],pk[i]-sn))
+        fout.close()
+        #
+
+
+def calc_pk1d(aa,h1mesh):
+    '''Compute the 1D redshift-space P(k) for the HI'''
+
+    start = time()
+    #pkh1h1   = FFTPower(h1mesh,mode='1d',kmin=0.025,dk=0.0125).power
+    pkh1h1   = FFTPower(h1mesh,mode='1d').power
+    end = time()
+    if rank ==0 : print('Time taken to power = ', end - start)
+    # Extract the quantities we want and write the file.
+    kk   = pkh1h1['k']
+    sn   = pkh1h1.attrs['shotnoise']
+    pk   = np.abs(pkh1h1['power'])
+    if rank ==0 : 
+        fout = open("../data/L{:04d}/HI_pks_1d_{:6.4f}.txt".format(bs, aa),"w")
         fout.write("# Subtracting SN={:15.5e}.\n".format(sn))
         fout.write("# {:>8s} {:>15s}\n".format("k","Pk_0_HI"))
         for i in range(kk.size):
@@ -120,30 +115,8 @@ def calc_pk1d(aa,suff):
 
 
 
-def calc_pkmu(aa,suff):
+def calc_pkmu(aa,h1mesh):
     '''Compute the redshift-space P(k) for the HI in mu bins'''
-    if rank ==0 : print('Read in central/satellite catalogs')
-    cencat = BigFileCatalog(scratch2+sim+'/fastpm_%0.4f/cencat-16node'%aa)
-    satcat = BigFileCatalog(scratch2+sim+'/fastpm_%0.4f/satcat'%aa+suff)
-    rsdfac = read_conversions(scratch1+sim+'/fastpm_%0.4f/'%aa)
-    # Compute P(k,mu).
-    los = [0,0,1]
-    cencat['RSDpos'] = cencat['Position']+cencat['Velocity']*los * rsdfac
-    satcat['RSDpos'] = satcat['Position']+satcat['Velocity']*los * rsdfac
-    cencat['HImass'] = HI_hod(cencat['Mass'],aa)
-    satcat['HImass'] = HI_hod(satcat['Mass'],aa)
-    totHImass        = cencat['HImass'].sum().compute() +\
-                       satcat['HImass'].sum().compute()
-    cencat['HImass']/= totHImass/float(nc)**3
-    satcat['HImass']/= totHImass/float(nc)**3
-    allcat = MultipleSpeciesCatalog(['cen','sat'],cencat,satcat)
-    h1mesh = allcat.to_mesh(BoxSize=bs,Nmesh=[nc,nc,nc],\
-                             position='RSDpos',weight='HImass')
-    #pkh1h1 = FFTPower(h1mesh,mode='2d',Nmu=4,los=los).power
-
-    cenmesh = pm.paint(cencat['RSDpos'], mass=cencat['HImass'])
-    satmesh = pm.paint(satcat['RSDpos'], mass=satcat['HImass'])
-    h1mesh = cenmesh + satmesh
 
     pkh1h1 = FFTPower(h1mesh,mode='2d',Nmu=4,los=los).power
     # Extract what we want.
@@ -152,7 +125,7 @@ def calc_pkmu(aa,suff):
     pk = pkh1h1['power']
     # Write the results to a file.
     if rank ==0 : 
-        fout = open("../data/HI_pks_mu_{:06.4f}.txt".format(aa),"w")
+        fout = open("../data/L{:04d}/HI_pks_mu_{:06.4f}.txt".format(bs, aa),"w")
         fout.write("# Redshift space power spectrum in mu bins.\n")
         fout.write("# Subtracting SN={:15.5e}.\n".format(sn))
         ss = "# {:>8s}".format(r'k\mu')
@@ -172,31 +145,8 @@ def calc_pkmu(aa,suff):
 
 
 
-def calc_pkll(aa,suff):
+def calc_pkll(aa,h1mesh):
     '''Compute the redshift-space P_ell(k) for the HI'''
-    if rank ==0 : print('Read in central/satellite catalogs')
-    cencat = BigFileCatalog(scratch2+sim+'/fastpm_%0.4f/cencat-16node'%aa)
-    satcat = BigFileCatalog(scratch2+sim+'/fastpm_%0.4f/satcat'%aa+suff)
-    rsdfac = read_conversions(scratch1+sim+'/fastpm_%0.4f/'%aa)
-    #
-    los = [0,0,1]
-    cencat['RSDpos'] = cencat['Position']+cencat['Velocity']*los * rsdfac
-    satcat['RSDpos'] = satcat['Position']+satcat['Velocity']*los * rsdfac
-    cencat['HImass'] = HI_hod(cencat['Mass'],aa)
-    satcat['HImass'] = HI_hod(satcat['Mass'],aa)
-    totHImass        = cencat['HImass'].sum().compute() +\
-                       satcat['HImass'].sum().compute()
-    cencat['HImass']/= totHImass/float(nc)**3
-    satcat['HImass']/= totHImass/float(nc)**3
-    allcat = MultipleSpeciesCatalog(['cen','sat'],cencat,satcat)
-
-    h1mesh = allcat.to_mesh(BoxSize=bs,Nmesh=[nc,nc,nc],\
-                             position='RSDpos',weight='HImass')
-    #pkh1h1 = FFTPower(h1mesh,mode='2d',Nmu=8,los=los,poles=[0,2,4]).poles
-    
-    cenmesh = pm.paint(cencat['RSDpos'], mass=cencat['HImass'])
-    satmesh = pm.paint(satcat['RSDpos'], mass=satcat['HImass'])
-    h1mesh = cenmesh + satmesh
 
     pkh1h1 = FFTPower(h1mesh,mode='2d',Nmu=8,los=los,poles=[0,2,4]).poles
     # Extract the quantities of interest.
@@ -207,7 +157,7 @@ def calc_pkll(aa,suff):
     P4 = pkh1h1['power_4'].real
     # Write the results to a file.
     if rank ==0 : 
-        fout = open("../data/HI_pks_ll_{:06.4f}.txt".format(aa),"w")
+        fout = open("../data/L{:04d}/HI_pks_ll_{:06.4f}.txt".format(bs, aa),"w")
         fout.write("# Redshift space power spectrum multipoles.\n")
         fout.write("# Subtracting SN={:15.5e} from monopole.\n".format(sn))
         fout.write("# {:>8s} {:>15s} {:>15s} {:>15s}\n".format("k","P0","P2","P4"))
@@ -223,12 +173,58 @@ def calc_pkll(aa,suff):
 
 if __name__=="__main__":
     print('Starting')
-    satsuff='-mmin0p1_m1_5p0min-alpha_0p9'
-    satsuff='-m1_8p0min-alpha_0p9'
-    satsuff='-m1_5p0min-alpha_0p9'
-    satsuff='-m1_5p0min-alpha_0p8-16node'
+
+##    satsuff='-mmin0p1_m1_5p0min-alpha_0p9'
+##    satsuff='-m1_8p0min-alpha_0p9'
+##    satsuff='-m1_5p0min-alpha_0p9'
+##
+    if bs == 1024:
+        censuff = '-16node'
+        satsuff='-m1_5p0min-alpha_0p8-16node'
+    elif bs == 256:
+        censuff = ''
+        satsuff='-m1_5p0min-alpha_0p8'
+
     for aa in alist:
-        calc_pk1d(aa,satsuff)
-        calc_pkmu(aa,satsuff)
-        calc_pkll(aa,satsuff)
+
+        if rank ==0 : print('For z = %0.2f'%(1/aa-1))
+        if rank ==0 : print('Read in central/satellite catalogs')
+
+        start = time()
+        cencat = BigFileCatalog(scratch2+sim+'/fastpm_%0.4f/cencat'%aa+censuff)
+        satcat = BigFileCatalog(scratch2+sim+'/fastpm_%0.4f/satcat'%aa+satsuff)
+        rsdfac = read_conversions(scratch1+sim+'/fastpm_%0.4f/'%aa)
+##        #
+##        los = [0,0,1]
+##        cencat['RSDpos'] = cencat['Position']+cencat['Velocity']*los * rsdfac
+##        satcat['RSDpos'] = satcat['Position']+satcat['Velocity']*los * rsdfac
+        cencat['HImass'] = HI_hod(cencat['Mass'],aa)
+        satcat['HImass'] = HI_hod(satcat['Mass'],aa)
+###        totHImass        = cencat['HImass'].sum().compute() +\
+###                           satcat['HImass'].sum().compute()
+###        cencat['HImass']/= totHImass/float(nc)**3
+###        satcat['HImass']/= totHImass/float(nc)**3
+###        allcat = MultipleSpeciesCatalog(['cen','sat'],cencat,satcat)
+###
+###        h1mesh = allcat.to_mesh(BoxSize=bs,Nmesh=[nc,nc,nc],\
+###                                 position='RSDpos',weight='HImass')
+###
+##        cenmesh = pm.paint(cencat['RSDpos'], mass=cencat['HImass'])
+##        satmesh = pm.paint(satcat['RSDpos'], mass=satcat['HImass'])
+##        h1mesh = cenmesh + satmesh
+##        h1mesh /= h1mesh.cmean()
+##        end = time()
+##        if rank ==0: print('Time to create mesh : ', end-start)
+##        calc_pk1d(aa,h1mesh)
+##        calc_pkmu(aa,h1mesh)
+##        calc_pkll(aa,h1mesh)
+##    #
+        cenmesh = pm.paint(cencat['Position'], mass=cencat['HImass'])
+        satmesh = pm.paint(satcat['Position'], mass=satcat['HImass'])
+        h1mesh = cenmesh + satmesh
+        h1mesh /= h1mesh.cmean()
+
+        end = time()
+        if rank ==0: print('Time to create mesh : ', end-start)
+        calc_pkreal(aa,h1mesh)
     #

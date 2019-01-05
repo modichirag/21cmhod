@@ -1,4 +1,4 @@
-B1;5202;0cimport numpy as np
+import numpy as np
 from scipy.interpolate import InterpolatedUnivariateSpline as ius
 from scipy.interpolate import interp1d, interp2d
 from time import time
