@@ -18,7 +18,8 @@ bs, nc = 256, 512
 ncsim, sim, prefix = 2560, 'highres/%d-9100-fixed'%2560, 'highres'
 pm = ParticleMesh(BoxSize=bs, Nmesh=[nc, nc, nc])
 rank = pm.comm.rank
-
+wsize = pm.comm.size
+if rank == 0: print('World size = ', wsize)
 
 # This should be imported once from a "central" place.
 def HI_hod(mhalo,aa):
@@ -38,7 +39,7 @@ def HI_hod(mhalo,aa):
     
 
 if __name__=="__main__":
-    print('Starting')
+    if rank == 0: print('Starting')
 
     if bs == 1024:
         censuff = '-16node'
@@ -61,7 +62,7 @@ if __name__=="__main__":
         h1mesh = pm.paint(cencat['Position'], mass=cencat['Mass'])
         #h1mesh = pm.paint(cencat['Position'])
 
-        print(rank, h1mesh.cmean())
+        print('Rank, mesh.cmean() : ', rank, h1mesh.cmean())
         h1mesh /= h1mesh.cmean()
 
         #
@@ -73,6 +74,8 @@ if __name__=="__main__":
         pk   = np.abs(pkh1h1['power'])
         pks.append(pk)
 
-    if rank ==0 : 
-        print(kk.shape, np.array(pks).shape)
-        np.savetxt('../data/pkdebug2-4.txt', np.concatenate((kk.reshape(-1, 1), np.array(pks).T), axis=-1))
+    #if rank ==0 : 
+    header = 'k, P(k, z) : %s'%alist[:2]
+    tosave = np.concatenate((kk.reshape(-1, 1), np.array(pks).T), axis=-1)
+    if rank == 0: print(tosave[:5])
+    np.savetxt('../data/pkdebug2-%d.txt'%wsize, tosave, header=header)
