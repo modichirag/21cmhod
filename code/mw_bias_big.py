@@ -2,6 +2,7 @@ import numpy as np
 from pmesh.pm     import ParticleMesh
 from nbodykit.lab import BigFileCatalog, MultipleSpeciesCatalog,\
                          BigFileMesh, FFTPower
+from mpi4py       import MPI
 #
 #Global, fixed things
 scratch1 = '/global/cscratch1/sd/yfeng1/m3127/'
@@ -17,8 +18,9 @@ bs,nc,ncsim = 1024, 1024, 10240
 sim,prefix  = 'highres/%d-9100-fixed'%ncsim, 'highres'
 
 # It's useful to have my rank for printing...
-pm = ParticleMesh(BoxSize=bs, Nmesh=[nc, nc, nc])
+pm   = ParticleMesh(BoxSize=bs, Nmesh=[nc, nc, nc])
 rank = pm.comm.rank
+comm = pm.comm
 
 
 
@@ -61,8 +63,12 @@ def calc_bias(aa,mcut,suff):
     if rank==0: print('Computing HI masses...')
     cencat['HImass'] = HI_hod(cencat['Mass'],aa,mcut)   
     satcat['HImass'] = HI_hod(satcat['Mass'],aa,mcut)   
-    totHImass        = cencat['HImass'].sum().compute() +\
+    rankHImass       = cencat['HImass'].sum().compute() +\
                        satcat['HImass'].sum().compute()
+    rankHImass = np.array([rankHImass])
+    totHImass  = np.zeros(1,dtype='float')
+    comm.Allreduce(rankHImass,totHImass,MPI.SUM)
+    totHImass  = totHImass[0]
     cencat['HImass']/= totHImass/float(nc)**3
     satcat['HImass']/= totHImass/float(nc)**3
     if rank==0: print('HI masses done.')
