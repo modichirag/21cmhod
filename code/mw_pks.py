@@ -182,16 +182,14 @@ def calc_pkll(aa,suff):
     satcat['HImass'] = HI_hod(satcat['Mass'],aa)
     rankHImass       = cencat['HImass'].sum().compute() +\
                        satcat['HImass'].sum().compute()
-    rankHImass = np.array([rankHImass])
-    totHImass  = np.zeros(1,dtype='float')
-    comm.Allreduce(rankHImass,totHImass,MPI.SUM)
-    totHImass  = totHImass[0]
+    totHImass        = comm.allreduce(rankHImass)
     cencat['HImass']/= totHImass/float(nc)**3
     satcat['HImass']/= totHImass/float(nc)**3
     allcat = MultipleSpeciesCatalog(['cen','sat'],cencat,satcat)
     h1mesh = allcat.to_mesh(BoxSize=bs,Nmesh=[nc,nc,nc],\
                              position='RSDpos',weight='HImass')
-    pkh1h1 = FFTPower(h1mesh,mode='2d',Nmu=8,los=los,poles=[0,2,4]).poles
+    pkh1h1 = FFTPower(h1mesh,mode='2d',Nmu=8,los=los,\
+                      kmin=0.05,dk=0.02,poles=[0,2,4]).poles
     # Extract the quantities of interest.
     kk = pkh1h1.coords['k']
     sn = pkh1h1.attrs['shotnoise']
