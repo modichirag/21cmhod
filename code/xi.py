@@ -16,14 +16,14 @@ scratch2 = '/global/cscratch1/sd/chmodi/m3127/H1mass/'
 project = '/project/projectdirs/m3127/H1mass/'
 cosmodef = {'omegam':0.309167, 'h':0.677, 'omegab':0.048}
 aafiles = [0.1429, 0.1538, 0.1667, 0.1818, 0.2000, 0.2222, 0.2500, 0.2857, 0.3333]
-aafiles = aafiles[:1]
+#aafiles = aafiles[:1]
 zzfiles = [round(tools.atoz(aa), 2) for aa in aafiles]
 
 #Paramteres
 #Maybe set up to take in as args file?
 bs, nc = 256, 256
 ncsim, sim, prefix = 256, 'lowres/%d-9100-fixed'%256, 'lowres'
-#ncsim, sim, prefix = 2560, 'highres/%d-9100-fixed'%2560, 'highres'
+ncsim, sim, prefix = 2560, 'highres/%d-9100-fixed'%2560, 'highres'
 satsuff = '-m1_5p0min-alpha_0p8'
 
 
@@ -96,8 +96,8 @@ def measurexi(N, edges):
 
         if rank == 0 : print('Create weight array')
 
-        halos = subsampler(halos, rng, N, edges.max())
-        h1 = subsampler(h1, rng, N, edges.max())
+        #halos = subsampler(halos, rng, N, edges.max())
+        #h1 = subsampler(h1, rng, N, edges.max())
         dm = subsampler(dm, rng, N, edges.max())
 
 
@@ -107,19 +107,19 @@ def measurexi(N, edges):
         end=time()
         if rank == 0 : print('Time for matter = ', end-start)
         start=end
-        xih = SimulationBox2PCF('1d',  data1=halos, edges=edges)
+        #xih = SimulationBox2PCF('1d',  data1=halos, edges=edges)
         end=time()
         if rank == 0 : print('Time for halos = ', end-start)
         start=end
-        ximxh = SimulationBox2PCF('1d',  data1=halos, data2=dm, edges=edges)
+        #ximxh = SimulationBox2PCF('1d',  data1=halos, data2=dm, edges=edges)
         end=time()
         if rank == 0 : print('Time for matter x halos = ', end-start)
         start=end
 
         #Others mass weighted
-        xihmass = SimulationBox2PCF('1d',  data1=halos, weight='Weight', edges=edges)
+        #xihmass = SimulationBox2PCF('1d',  data1=halos, weight='Weight', edges=edges)
         xih1mass = SimulationBox2PCF('1d',  data1=h1, weight='Weight', edges=edges)
-        ximxhmass = SimulationBox2PCF('1d',  data1=halos, data2=dm, weight='Weight', edges=edges)
+        #ximxhmass = SimulationBox2PCF('1d',  data1=halos, data2=dm, weight='Weight', edges=edges)
         ximxh1mass = SimulationBox2PCF('1d',  data1=h1, data2=dm, weight='Weight', edges=edges)
         
 
@@ -132,13 +132,13 @@ def measurexi(N, edges):
                     pass
                 np.savetxt(path, np.stack((r, xi), axis=1), header=header)
             
-        ofolder = project + '/%s/fastpm_%0.4f/ss-%d/' % (sim, aa, N)
+        ofolder = project + '/%s/fastpm_%0.4f/ss_cm-%d/' % (sim, aa, N)
         
-        savebinned(ofolder+'xihpos.txt', xih, header='r, xi(r)')
+        #savebinned(ofolder+'xihpos.txt', xih, header='r, xi(r)')
         #savebinned(ofolder+'ximatter.txt', xim, header='r, xi(r)')
-        savebinned(ofolder+'xihmass.txt', xihmass, header='r, xi(r)')
+        #savebinned(ofolder+'xihmass.txt', xihmass, header='r, xi(r)')
         savebinned(ofolder+'xih1mass.txt', xih1mass, header='r, xi(r)')
-        savebinned(ofolder+'ximxhmass.txt', ximxhmass, header='r, xi(r)')
+        #savebinned(ofolder+'ximxhmass.txt', ximxhmass, header='r, xi(r)')
         savebinned(ofolder+'ximxh1mass.txt', ximxh1mass, header='r, xi(r)')
 
 
@@ -186,8 +186,8 @@ def measurexigal(N, edges):
 
         #h1 = subsampler(allcat, rng, N, edges.max())
         dm = subsampler(dm, rng, N, edges.max())
-        cencat = subsampler(cencat, rng, N, edges.max())
-        satcat = subsampler(satcat, rng, N, edges.max())
+        #cencat = subsampler(cencat, rng, N, edges.max())
+        #satcat = subsampler(satcat, rng, N, edges.max())
         h1 = transform.ConcatenateSources(cencat, satcat)
 
 
@@ -215,8 +215,8 @@ def measurexigal(N, edges):
                     pass
                 np.savetxt(path, np.stack((r, xi), axis=1), header=header)
             
-        ofolder = project + '/%s/fastpm_%0.4f/ss-%d/' % (sim, aa, N)
-        
+        ofolder = project + '/%s/fastpm_%0.4f/ss_cm-%d/' % (sim, aa, N)
+
         savebinned(ofolder+'xigal_h1.txt', xigal_h1, header='r, xi(r)')
         savebinned(ofolder+'xigal_mxh1.txt', xigal_mxh1, header='r, xi(r)')
 
@@ -228,5 +228,5 @@ if __name__=="__main__":
     edges = np.logspace(np.log10(0.5), np.log10(20), 10)
     # use 1000 particles up to (20 Mpc/h) ** 3 volume;
     # looks good enough?
-    measurexigal(N=1000, edges=edges)
-    measurexi(N=1000, edges=edges)
+    measurexigal(N=10000, edges=edges)
+    measurexi(N=10000, edges=edges)
