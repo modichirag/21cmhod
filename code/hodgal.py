@@ -28,7 +28,7 @@ zzfiles = [round(tools.atoz(aa), 2) for aa in aafiles]
 #Paramteres
 #Maybe set up to take in as args file?
 bs, nc, ncsim, sim, prefix = 256, 256, 256, 'lowres/%d-9100-fixed'%256, 'lowres'
-bs, nc, ncsim, sim, prefix = 256, 256, 2560, 'highres/%d-9100-fixed'%2560, 'highres'
+#bs, nc, ncsim, sim, prefix = 256, 256, 2560, 'highres/%d-9100-fixed'%2560, 'highres'
 #bs, nc, ncsim, sim, prefix = 1024, 1024, 10240, 'highres/%d-9100-fixed'%10240, 'highres'
 
 
@@ -46,6 +46,9 @@ def readincatalog(aa, matter=False):
     else: return halocat
 
 
+def assign_msat(y, xmin, xmax, alpha):
+    return  (xmin**alpha + (xmax**alpha - xmin**alpha)*y)**(1/alpha)
+
 
 def make_galcat(aa, mmin, mcutc, m1, sigma=0.25, kappa=1, alpha=1, censuff=None, satsuff=None, seed=3333):
     '''do HOD with Zheng model using nbodykit'''
@@ -57,8 +60,8 @@ def make_galcat(aa, mmin, mcutc, m1, sigma=0.25, kappa=1, alpha=1, censuff=None,
     hmass = halocat['Mass'].compute()
     hpos = halocat['Position'].compute()
     hvel = halocat['Velocity'].compute()
-    rvir = HaloRadius(cmass, cosmo, 1/aa-1).compute()/aa
-    vdisp = HaloVelocityDispersion(cmass, cosmo, 1/aa-1).compute()
+    rvir = HaloRadius(hmass, cosmo, 1/aa-1).compute()/aa
+    vdisp = HaloVelocityDispersion(hmass, cosmo, 1/aa-1).compute()
 
     print('In rank = %d, Catalog size = '%rank, hmass.size)
     #Do hod
@@ -101,7 +104,8 @@ def make_galcat(aa, mmin, mcutc, m1, sigma=0.25, kappa=1, alpha=1, censuff=None,
     mmin = np.ones_like(mmax)*mmin
     mask = mmin > hmass[hid]/10. #Some fudge that should be discussed
     mmin[mask] = hmass[hid][mask]/10.
-    smass = mmin * mmax / ((1-smass)*mmax + smass*mmin)
+    #smass = mmin * mmax / ((1-smass)*mmax + smass*mmin)
+    smass = hmass[hid]*assign_msat(smass, mmin/hmass[hid], mmax/hmass[hid], alpha)
 
     satcat = ArrayCatalog({'Position':spos, 'Velocity':svel, 'Mass':smass,  'HaloID':hid}, 
                           BoxSize=halocat.attrs['BoxSize'], Nmesh=halocat.attrs['NC'])
@@ -121,15 +125,17 @@ if __name__=="__main__":
  
         #sat hod : N = ((M_h-\kappa*mcut)/m1)**alpha
         zz = 1/aa-1
-        mmin = 10**(11-0.4*np.array(zz))
+        mmin = 10**(11-0.4*np.array(zz)) #This is already 1/10th of mcut
         #Update mmin with the current mcut from draft
-        mmin = 1e9*( 1.8 + 15*(3*aa)**8 ) * 0.1 # 0.1 is the lim from appendix
+        #mmin = 1e9*( 1.8 + 15*(3*aa)**8 ) * 0.1 # 0.1 is the lim from appendix
         #mmin /= 10
         alpha = 0.8
         for m1 in [5.0]:
-            satsuff='-m1_%dp%dmin-alpha_0p8'%(int(m1), (m1*10)%10)
+            censuff = '-test'
+            #satsuff='-m1_%dp%dmin-alpha_0p8-test'%(int(m1), (m1*10)%10)
+            satsuff='-test'
             #print('\n', mmin, m1, satsuff, '\n')
             m1m = m1*mmin
-            make_galcat(aa=aa, mmin=mmin, mcutc=mcutc, m1=m1m, sigma=sigma, kappa=kappa, alpha=alpha, censuff='', satsuff=satsuff)
+            make_galcat(aa=aa, mmin=mmin, mcutc=mcutc, m1=m1m, sigma=sigma, kappa=kappa, alpha=alpha, censuff=censuff, satsuff=satsuff)
 
 #

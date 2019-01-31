@@ -16,7 +16,7 @@ scratch2 = '/global/cscratch1/sd/chmodi/m3127/H1mass/'
 project = '/project/projectdirs/m3127/H1mass/'
 cosmodef = {'omegam':0.309167, 'h':0.677, 'omegab':0.048}
 aafiles = [0.1429, 0.1538, 0.1667, 0.1818, 0.2000, 0.2222, 0.2500, 0.2857, 0.3333]
-#aafiles = aafiles[:1]
+aafiles = aafiles[2:]
 zzfiles = [round(tools.atoz(aa), 2) for aa in aafiles]
 
 #Paramteres
@@ -193,7 +193,7 @@ def measurexigal(N, edges):
 
         if rank == 0 : print("Correlation function for edges :\n", edges)
         start=time()
-        #xim = SimulationBox2PCF('1d',  data1=dm, edges=edges)
+        xim = SimulationBox2PCF('1d',  data1=dm, edges=edges)
         end=time()
         if rank == 0 : print('Time for matter = ', end-start)
         start=end
@@ -217,6 +217,7 @@ def measurexigal(N, edges):
             
         ofolder = project + '/%s/fastpm_%0.4f/ss_cm-%d/' % (sim, aa, N)
 
+        savebinned(ofolder+'ximatter.txt', xim, header='r, xi(r)')
         savebinned(ofolder+'xigal_h1.txt', xigal_h1, header='r, xi(r)')
         savebinned(ofolder+'xigal_mxh1.txt', xigal_mxh1, header='r, xi(r)')
 
