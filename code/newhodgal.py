@@ -6,7 +6,6 @@ from nbodykit.transform import HaloRadius, HaloVelocityDispersion
 from nbodykit.cosmology.cosmology import Cosmology
 import os
 
-import simplehod
 import hod
 
 import sys
