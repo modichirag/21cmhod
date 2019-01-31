@@ -119,14 +119,13 @@ if __name__=="__main__":
         mmin = 1e9*( 1.8 + 15*(3*aa)**8 ) * 0.1 #mcut * 0.1, 0.1 being mmin
 
 
-        alpha = 0.8
+        alpha = 0.75
         for m1fac in [5.0]:
-            censuff ='-m1_%dp%dmin-alpha_0p8-v2'%(int(m1fac), (m1fac*10)%10)
-            satsuff ='-m1_%dp%dmin-alpha_0p8-v2'%(int(m1fac), (m1fac*10)%10)
+            censuff ='-m1_%dp%dmin-alpha_0p75-v2'%(int(m1fac), (m1fac*10)%10)
+            satsuff ='-m1_%dp%dmin-alpha_0p75-v2'%(int(m1fac), (m1fac*10)%10)
 
             m1 = m1fac*mmin
-            make_galcat(aa=aa, mmin=mmin, mcutc=mcutc, m1=m1m, sigma=sigma, kappa=kappa, alpha=alpha, 
-                        censuff=censuff, satsuff=satsuff, ofolder=ofolder)
+            make_galcat(aa=aa, mmin=mmin, m1=m1, alpha=alpha, censuff=censuff, satsuff=satsuff, ofolder=ofolder)
 
     
 
