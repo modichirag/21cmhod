@@ -10,6 +10,7 @@ from time import time
 
 
 dpath = '/project/projectdirs/m3127/H1mass/'
+myscratch = '/global/cscratch1/sd/chmodi/m3127/H1mass/'
 # dpath = '../data/'
 
 bs, nc = 256, 256
@@ -17,122 +18,86 @@ pm = ParticleMesh(BoxSize = bs, Nmesh = [nc, nc, nc])
 # sim = '/lowres/%d-9100-fixed'%256
 sim = '/highres/%d-9100-fixed'%2560
 aafiles = np.array([0.1429, 0.1538, 0.1667, 0.1818, 0.2000, 0.2222, 0.2500, 0.2857, 0.3333])
-#aafiles = aafiles[:5]
+
+#aafiles = aafiles[:1]
 zzfiles = np.array([round(tools.atoz(aa), 2) for aa in aafiles])
 
-subf = 'mcutfiddle'
-try: os.makedirs('./figs/%s'%subf)
-except:pass
-
-mcutf = np.ones_like(zzfiles)
-mcutf[-1] = 2
-mcutf[-2] = 0.5
-mcutf[-3] = 0.5
-mcutf[-4] = 0.8
 
 
-plt.plot(zzfiles, dohod.HI_mass(1, aafiles, 'mcut'), 'o')
-plt.plot(zzfiles, mcutf*dohod.HI_mass(1, aafiles, 'mcut'), 's')
-plt.yscale('log')
-plt.savefig('./figs/%s/mcut.png'%subf)         
 
-
-##Halos and centrals
-
-hpos, hmass, h1mass = {}, {}, {}
-cpos, cmass, ch1mass, chid = {}, {}, {}, {}
-
-
-def HI_masscutfiddle(mhalo,aa, mcutf=1.0):
-    """Makes a 21cm "mass" from a box of halo masses.
-    Use mcutf to fiddle with Mcut
-    """
-    print('Assigning weights')
+def HI_masscutfiddle(mhalo,aa):
+    """Returns the 21cm "mass" for a box of halo masses."""
     zp1 = 1.0/aa
     zz  = zp1-1
+    alp = 1.0
     alp = (1+2*zz)/(2+2*zz)
-    norm = 2e9*np.exp(-1.9*zp1+0.07*zp1**2)
-
-    mcut= 1e10*(6.11-1.99*zp1+0.165*zp1**2)*mcutf
+    mcut= 1e9*( 1.8 + 15*(3*aa)**8 )
+    norm= 3e5*(1+(3.5/zz)**6)
     xx  = mhalo/mcut+1e-10
     mHI = xx**alp * np.exp(-1/xx)
     mHI*= norm
-
     return(mHI)
-
-print('Read Halos and Centrals')
-for i, aa in enumerate(aafiles):
-    zz = zzfiles[i]
-    print(zz)
-    start = time()
-    halos = BigFileCatalog(dpath + sim+ '/fastpm_%0.4f/halocat/'%aa)
-    cen = BigFileCatalog(dpath + sim+ '/fastpm_%0.4f/cencat/'%aa)
-    hmass[zz], h1mass[zz] = halos["Mass"].compute(), HI_masscutfiddle(halos['Mass'].compute(), aa, mcutf[i])
-    cmass[zz], ch1mass[zz] = cen["Mass"].compute(), HI_masscutfiddle(cen['Mass'].compute(), aa, mcutf[i])
-    hpos[zz], cpos[zz] = halos['Position'].compute(), cen['Position'].compute()
-    chid[zz] = cen['HaloID'].compute()
-    print('Time ', time()-start)
-
-
-print('Bin Centrals')
-hbins, hcount, hm, ch1 = {}, {}, {}, {}
-dmesh, ch1mesh, pkm, pkch1, pkmch1x = {}, {}, {}, {}, {}
-for iz, zz in enumerate(zzfiles):
-    print(zz)
-    #measure power
-    dmesh[zz] = BigFileMesh(dpath + sim + '/fastpm_%0.4f/'%aafiles[iz] + '/dmesh_N%04d'%nc, '1').paint()
-    pk = FFTPower(dmesh[zz]/dmesh[zz].cmean(), mode='1d').power
-    k, pkm[zz] = pk['k'], pk['power']
-    ch1mesh[zz] = pm.paint(cpos[zz], mass=ch1mass[zz])    
-    #pkch1[zz] = FFTPower(h1mesh/h1mesh.cmean(), mode='1d').power['power']
-    #pkmch1x[zz] = FFTPower(h1mesh/h1mesh.cmean(), second=dm/dm.cmean(), mode='1d').power['power']
-
-    hbins[zz] = np.logspace(np.log10(hmass[zz][-1])-0.01, np.log10(hmass[zz][0])-0.01)
-    hcount[zz], hm[zz], ch1[zz] = [np.zeros_like(hbins[zz]) for i in range(3)]
-    for i in range(hbins[zz].size-1):
-        r1, r2 = np.where(hmass[zz]>hbins[zz][i])[0][-1], np.where(hmass[zz]>hbins[zz][i+1])[0][-1]
-        hcount[zz][i] = (r1-r2)
-        hm[zz][i] = (hmass[zz][r2:r1].sum())
-        ch1[zz][i] = (ch1mass[zz][(chid[zz] < r1) & (chid[zz] > r2)].sum())
+    #
+#
 
 
 
 ##Satellites
 
-#for suff in ['_b3p0', '_b2p5', '_b3p5', '_b4p0']:
-#for suff in ['-min_1p0h1-m1_10p0h1',  '-min_1p0h1-m1_100p0h1', '-min_1p0h1-m1_50p0h1', '-min_0p5h1-m1_10p0h1']:
-#for suff in ['-min_2p0h1-m1_10p0h1',  '-min_2p0h1-m1_20p0h1', '-min_1p0h1-m1_5p0h1', '-min_1p0h1-m1_20p0h1']:
-#for suff in ['-min_10p0h1-m1_10p0h1',  '-min_1p0h1-m1_20p0h1', '-min_5p0h1-m1_10p0h1', '-min_5p0h1-m1_50p0h1']:
-#for suff in ['-m1_1p0min-alpha_0p8', '-m1_5p0min-alpha_0p8', '-m1_10p0min-alpha_0p8', '-m1_50p0min-alpha_0p8']:
-#for suff in ['-m1_2p0min-alpha_0p9', '-m1_5p0min-alpha_0p9', '-m1_10p0min-alpha_0p9', '-m1_8p0min-alpha_0p9']:
-for suff in ['-m1_10p0min-alpha_0p8', '-m1_5p0min-alpha_0p8', '-m1_5p0min-alpha_0p9', '-m1_8p0min-alpha_0p9']:
-#for suff in ['-mmin0p1_m1_10p0min-alpha_0p9', '-mmin0p1_m1_20p0min-alpha_0p9', '-mmin0p1_m1_5p0min-alpha_0p8',\
-#             '-mmin0p1_m1_10p0min-alpha_0p8', '-mmin0p1_m1_20p0min-alpha_0p8']:
-    print(suff)
-    spos, smass, sh1mass, shid = {}, {}, {}, {}
+hpos, hmass, hid, h1mass = tools.readinhalos(aafiles, sim)
 
-    print('Read satellites')
-    for i, aa in enumerate(aafiles):
-        zz = zzfiles[i]
-        print(zz)
-        start = time()
-        sat = BigFileCatalog(dpath + sim+ '/fastpm_%0.4f/satcat'%aa+suff)
-        smass[zz], sh1mass[zz] = sat["Mass"].compute(), HI_masscutfiddle(sat['Mass'].compute(), aa, mcutf[i])
-        spos[zz] = sat['Position'].compute()
-        shid[zz] = sat['HaloID'].compute()
-        print(time()-start)
+for suff in ['-m1_00p3mh-alpha-0p8-v2', '-m1_00p3mh-alpha-0p9-v2', '-m1_00p5mh-alpha-0p8-v2', '-m1_00p5mh-alpha-0p9-v2']:
+
+    subf = suff[1:]
+    try: 
+        os.makedirs('./figs/%s'%subf)
+    except:pass
 
 
-    print('Bin satellites')
-    sh1, hh1, scount = {}, {}, {}
-    for zz in zzfiles:
-        print(zz)
-        sh1[zz], hh1[zz], scount[zz] = [np.zeros_like(hbins[zz]) for i in range(3)]
+    print('\n%s\n'%suff)
+    start = time()
+    cpos, cmass, chid, ch1mass = tools.readincentrals(aafiles, suff, sim)
+    spos, smass, shid, sh1mass = tools.readinsatellites(aafiles, suff, sim)
+    print('Time to read all catalogs : ', time()-start)
+    
+
+    print('Bin Halos')
+    hbins, hcount, hm, hh1 = {}, {}, {}, {}
+    dmesh, pkm = {}, {}
+    start = time()
+    for iz, zz in enumerate(zzfiles):
+        print(zz, 'Time : ', time()-start)
+        #measure power
+        dmesh[zz] = BigFileMesh(dpath + sim + '/fastpm_%0.4f/'%aafiles[iz] + '/dmesh_N%04d'%nc, '1').paint()
+        pk = FFTPower(dmesh[zz]/dmesh[zz].cmean(), mode='1d').power
+        k, pkm[zz] = pk['k'], pk['power']
+
+        hbins[zz] = np.logspace(np.log10(hmass[zz][-1])-0.01, np.log10(hmass[zz][0])-0.01)
+        hcount[zz], hm[zz], hh1[zz] = [np.zeros_like(hbins[zz]) for i in range(3)]
         for i in range(hbins[zz].size-1):
             r1, r2 = np.where(hmass[zz]>hbins[zz][i])[0][-1], np.where(hmass[zz]>hbins[zz][i+1])[0][-1]
-            sh1[zz][i] = (sh1mass[zz][(shid[zz] < r1) & (shid[zz] > r2)].sum())
-            scount[zz][i] = (((shid[zz] < r1) & (shid[zz] > r2)).sum())
-            hh1[zz][i] = (ch1[zz][i]+sh1[zz][i])
+            hcount[zz][i] = (r1-r2)
+            hm[zz][i] = (hmass[zz][r2:r1].sum())
+            hh1[zz][i] = (h1mass[zz][r2:r1].sum())
+            
+
+
+
+    print('Bin centrals & satellites')
+    start = time()
+    cm, sm, ch1, sh1, h1tot, scount = {}, {}, {}, {}, {}, {}
+    for zz in zzfiles:
+        print(zz, 'Time : ', time()-start)
+        cm[zz], sm[zz], ch1[zz], sh1[zz], h1tot[zz], scount[zz] = [np.zeros_like(hbins[zz]) for i in range(6)]
+        for i in range(hbins[zz].size-1):
+            r1, r2 = np.where(hmass[zz]>hbins[zz][i])[0][-1], np.where(hmass[zz]>hbins[zz][i+1])[0][-1]
+            smask, cmask = (shid[zz] < r1) & (shid[zz] > r2), (chid[zz] < r1) & (chid[zz] > r2)
+            sh1[zz][i] = sh1mass[zz][smask].sum()
+            ch1[zz][i] = ch1mass[zz][cmask].sum()
+            sm[zz][i] = smass[zz][smask].sum()
+            cm[zz][i] = cmass[zz][cmask].sum()
+            scount[zz][i] = smask.sum()
+            h1tot[zz][i] = (ch1[zz][i]+sh1[zz][i])
 
 
     ## Plot HOD/occupancy of satellites
@@ -140,6 +105,7 @@ for suff in ['-m1_10p0min-alpha_0p8', '-m1_5p0min-alpha_0p8', '-m1_5p0min-alpha_
     for zz in zzfiles:
         plt.plot(hm[zz]/hcount[zz], scount[zz]/hcount[zz], label=zz)
     plt.xscale('log')
+    plt.grid(which='both', lw=0.3)
     plt.xlabel('M_h (M$_\odot$/h)')
     plt.ylabel('Number of satellites')
     plt.legend()
@@ -149,11 +115,13 @@ for suff in ['-m1_10p0min-alpha_0p8', '-m1_5p0min-alpha_0p8', '-m1_5p0min-alpha_
     fig, ax = plt.subplots(3, 3, figsize=(12, 12))
     for iz, zz in enumerate(zzfiles):
         axis=ax.flatten()[iz]
-        axis.plot(hm[zz]/hcount[zz], hh1[zz]/hcount[zz], '--', lw=2, label='In halo')
+        axis.plot(hm[zz]/hcount[zz], hh1[zz]/hcount[zz], ':', lw=3, label='In halo')
+        axis.plot(hm[zz]/hcount[zz], h1tot[zz]/hcount[zz], '--', lw=2, label='Central+satellite')
         axis.plot(hm[zz]/hcount[zz], ch1[zz]/hcount[zz], label='In centrals')
         axis.plot(hm[zz]/hcount[zz], sh1[zz]/hcount[zz], label='In satellites')
         axis.loglog()
         axis.set_title('z = %0.2f'%zz)
+        axis.grid(which='both', lw=0.3)
     for axis in ax[:, 0]:axis.set_ylabel('M$_{HI}$')
     for axis in ax[-1, :]:axis.set_xlabel('M$_{h}$')
     ax[0, 0].legend()
@@ -165,21 +133,55 @@ for suff in ['-m1_10p0min-alpha_0p8', '-m1_5p0min-alpha_0p8', '-m1_5p0min-alpha_
     for iz, zz in enumerate(zzfiles):
         axis=ax.flatten()[iz]
         #axis.plot(hm[zz]/hcount[zz], hh1[zz]/hcount[zz], '--', label='In halo')
-        axis.plot(hm[zz]/hcount[zz], ch1[zz]/hh1[zz], label='In centrals')
-        axis.plot(hm[zz]/hcount[zz], sh1[zz]/hh1[zz], label='In satellites')
+        axis.plot(hm[zz]/hcount[zz], ch1[zz]/hh1[zz], label='In centrals of halo')
+        axis.plot(hm[zz]/hcount[zz], sh1[zz]/hh1[zz], label='In satellites of halo')
+        axis.plot(hm[zz]/hcount[zz], ch1[zz]/h1tot[zz], '--', lw=2, label='In centrals of total')
+        axis.plot(hm[zz]/hcount[zz], sh1[zz]/h1tot[zz], '--', lw=2, label='In satellites of total')
         axis.set_xscale('log')
         axis.set_title('z = %0.2f'%zz)
+        axis.grid(which='both', lw=0.3)
     for axis in ax[:, 0]:axis.set_ylabel('M$_{HI}$')
     for axis in ax[-1, :]:axis.set_xlabel('M$_{h}$')
     ax[0, 0].legend()
     plt.savefig('./figs/%s/HIdistratio%s'%(subf, suff))
 
 
+
+    ## Plot mass  in centrals and satellites
+    fig, ax = plt.subplots(3, 3, figsize=(12, 12))
+    for iz, zz in enumerate(zzfiles):
+        axis=ax.flatten()[iz]
+        axis.plot(hm[zz]/hcount[zz], hm[zz]/hcount[zz], ':', lw=3, label='In halo')
+        axis.plot(hm[zz]/hcount[zz], cm[zz]/hcount[zz], label='In centrals')
+        axis.plot(hm[zz]/hcount[zz], sm[zz]/hcount[zz], label='In satellites')
+        axis.loglog()
+        axis.set_title('z = %0.2f'%zz)
+        axis.grid(which='both', lw=0.3)
+    for axis in ax[:, 0]:axis.set_ylabel('M$_{DM}$')
+    for axis in ax[-1, :]:axis.set_xlabel('M$_{h}$')
+    ax[0, 0].legend()
+    plt.savefig('./figs/%s/massdist%s'%(subf, suff))
+
+
+    ## Plot fraction of mass in centrals and satellites
+    fig, ax = plt.subplots(3, 3, figsize=(12, 12))
+    for iz, zz in enumerate(zzfiles):
+        axis=ax.flatten()[iz]
+        #axis.plot(hm[zz]/hcount[zz], hh1[zz]/hcount[zz], '--', label='In halo')
+        axis.plot(hm[zz]/hcount[zz], cm[zz]/hm[zz], label='In centrals of halo')
+        axis.plot(hm[zz]/hcount[zz], sm[zz]/hm[zz], label='In satellites of halo')
+        axis.set_xscale('log')
+        axis.set_title('z = %0.2f'%zz)
+        axis.grid(which='both', lw=0.3)
+    for axis in ax[:, 0]:axis.set_ylabel('M$_{DM}$')
+    for axis in ax[-1, :]:axis.set_xlabel('M$_{h}$')
+    ax[0, 0].legend()
+    plt.savefig('./figs/%s/massdistratio%s'%(subf, suff))
+
+
     ## Plot mass function of centrals and satellites
     plt.figure(figsize=(8, 6))
     for i, zz  in enumerate(zzfiles):
-    #     plt.hist(np.log10(smass[zz]), color='C%d'%i, bins=50, histtype='step', label=zz, log=False, lw=2, normed=True)
-    #     plt.hist(np.log10(cmass[zz]), color='C%d'%i, bins=50, histtype='step', label=zz, log=False, lw=2, normed=True, ls="--")
         plt.hist(np.log10(smass[zz]), color='C%d'%i, bins=20, histtype='step', label=zz, log=True, lw=1.5, normed=False)
         plt.hist(np.log10(cmass[zz]), color='C%d'%i, bins=20, histtype='step', log=True, lw=2, normed=False, ls="--")
         plt.axvline(np.log10(dohod.HI_mass(1, aafiles[i], 'mcut')), color='C%d'%i, ls=":")
@@ -191,17 +193,16 @@ for suff in ['-m1_10p0min-alpha_0p8', '-m1_5p0min-alpha_0p8', '-m1_5p0min-alpha_
 
 
     ## Plot bias
+    start = time()
     fig, ax = plt.subplots(1, 2, figsize = (9, 4))
     for iz, zz  in enumerate(zzfiles):
         sh1mesh = pm.paint(spos[zz], mass=sh1mass[zz])
-        h1mesh = sh1mesh + ch1mesh[zz]
+        ch1mesh = pm.paint(cpos[zz], mass=ch1mass[zz])
+        h1mesh = sh1mesh + ch1mesh
         pkh1 = FFTPower(h1mesh/h1mesh.cmean(), mode='1d').power['power']
         pkh1m = FFTPower(h1mesh/h1mesh.cmean(), second=dmesh[zz]/dmesh[zz].cmean(), mode='1d').power['power']
         b1h1 = pkh1m/pkm[zz]
         b1h1sq = pkh1/pkm[zz]
-        #ofolder = dpath + '/%s/fastpm_%0.4f/'%(sim, aafiles[iz])
-        #np.savetxt(ofolder+'bias%s.txt'%(subf, suff), np.stack((k, b1h1, b1h1sq**0.5), axis=1), 
-        #                                       header='k, pkh1xm/pkm, pkh1/pkm^0.5')
 
         ax[0].plot(k, b1h1, 'C%d'%iz, lw=1.5)
         ax[0].plot(k, b1h1sq**0.5, 'C%d--'%iz, lw=2)
@@ -212,6 +213,8 @@ for suff in ['-m1_10p0min-alpha_0p8', '-m1_5p0min-alpha_0p8', '-m1_5p0min-alpha_
         axis.legend()
         ax[0].set_xscale('log')
         axis.set_ylim(1, 5)
-        #axis.grid(which='both', lw=0.3)
+        axis.grid(which='both', lw=0.3)
     fig.savefig('./figs/%s/bias%s.png'%(subf, suff))
+
+    print('Time to estimate bias : ', time()-start)
 

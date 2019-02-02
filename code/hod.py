@@ -52,8 +52,15 @@ def ncen(mh, mcutc, sigma):
     return 0.5* (1 + erf ((np.log10(mh)-np.log10(mcutc))/sigma ))
 
 
-def nsat(mh, m0, m1, alpha):
+
+def nsat_zheng(mh, m0, m1, alpha):
     return ((mh - m0)/m1) ** alpha
+
+def nsat_martin(msat, mh, m1f, alpha):
+    '''return number of satellites with mass greater than msat
+    for host of mass mh and with normalization of 1 satellite at m1=m1f*mh
+    '''
+    return ( msat/(m1f*mh) ) ** alpha
 
 
 def sample_powerlaw(n, xmin, xmax, alpha, seed=100):
@@ -69,12 +76,12 @@ def get_msat(mh, mmin, mmax, alpha, seed=100):
     '''alpha is the index of the cdf of (M_h/m_sat) where msat is what we want to sample
     '''
     n = mh.size
-    smass = mh *sample_powerlaw(n, mmin/mh, mmax/mh, -1 * alpha, seed=seed) #   multiply alpha by -1 to sample from powerlaw
+    smass = mh *sample_powerlaw(n, mmin/mh, mmax/mh, alpha, seed=seed)
     return smass
 
 
 
-def mksat(nsat, hindex,
+def mksat(nsat, 
     pos, vel, rvir, vdisp, conc, 
     vsat=0.5, seed=231
     ):

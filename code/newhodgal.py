@@ -22,7 +22,7 @@ cosmodef = {'omegam':0.309167, 'h':0.677, 'omegab':0.048}
 cosmo = Cosmology.from_dict(cosmodef)
 print(cosmo)
 aafiles = [0.1429, 0.1538, 0.1667, 0.1818, 0.2000, 0.2222, 0.2500, 0.2857, 0.3333]
-#aafiles = aafiles[:2]
+aafiles = aafiles[:1]
 zzfiles = [round(tools.atoz(aa), 2) for aa in aafiles]
 
 #Paramteres
@@ -43,7 +43,7 @@ def readincatalog(aa):
 
 
 
-def make_galcat(aa, mmin, m1, alpha=1, censuff=None, satsuff=None, ofolder=None, seed=3333):
+def make_galcat(aa, mmin, m1f, alpha=-1, censuff=None, satsuff=None, ofolder=None, seed=3333):
     '''Assign 0s to 
     '''
     zz = tools.atoz(aa)
@@ -62,11 +62,12 @@ def make_galcat(aa, mmin, m1, alpha=1, censuff=None, satsuff=None, ofolder=None,
     #Do hod    
     start = time()
     ncen = np.ones_like(hmass)
-    nsat = hod.nsat(hmass, m0=0, m1=m1, alpha=alpha).astype(int)
+    nsat = hod.nsat_martin(msat = mmin, mh=hmass, m1f=m1f, alpha=alpha).astype(int)
     
     #Centrals
     cpos, cvel, gchid = hpos, hvel, ghid
-    spos, svel, shid = hod.mksat(nsat, hindex=ghid, pos=hpos, vel=hvel, vdisp=vdisp, conc=7, rvir=rvir, vsat=0.5, seed=seed)
+    spos, svel, shid = hod.mksat(nsat, pos=hpos, vel=hvel, 
+                                 vdisp=vdisp, conc=7, rvir=rvir, vsat=0.5, seed=seed)
     gshid = ghid[shid]
     svelh1 = svel*2/3 + cvel[shid]/3.
 
@@ -119,13 +120,12 @@ if __name__=="__main__":
         mmin = 1e9*( 1.8 + 15*(3*aa)**8 ) * 0.1 #mcut * 0.1, 0.1 being mmin
 
 
-        alpha = 0.75
-        for m1fac in [5.0]:
-            censuff ='-m1_%dp%dmin-alpha_0p75-v2'%(int(m1fac), (m1fac*10)%10)
-            satsuff ='-m1_%dp%dmin-alpha_0p75-v2'%(int(m1fac), (m1fac*10)%10)
+        alpha = -0.8
+        for m1fac in [0.05]:
+            censuff ='-m1_%02dp%dmh-alpha-0p8-v2'%(int(m1fac*10), (m1fac*100)%10)
+            satsuff ='-m1_%02dp%dmh-alpha-0p8-v2'%(int(m1fac*10), (m1fac*100)%10)
 
-            m1 = m1fac*mmin
-            make_galcat(aa=aa, mmin=mmin, m1=m1, alpha=alpha, censuff=censuff, satsuff=satsuff, ofolder=ofolder)
+            make_galcat(aa=aa, mmin=mmin, m1f=m1fac, alpha=alpha, censuff=censuff, satsuff=satsuff, ofolder=ofolder)
 
     
 
