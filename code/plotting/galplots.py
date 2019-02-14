@@ -3,11 +3,14 @@ import matplotlib.pyplot as plt
 from pmesh.pm import ParticleMesh
 from nbodykit.lab import BigFileCatalog, BigFileMesh, FFTPower
 
+from scipy.interpolate import InterpolatedUnivariateSpline as ius
+
 import os, sys
 sys.path.append('../code/utils/')
 import tools, dohod
 from time import time
-
+import hodanalytics as hodanals
+from HImodels import ModelA
 
 dpath = '/project/projectdirs/m3127/H1mass/'
 myscratch = '/global/cscratch1/sd/chmodi/m3127/H1mass/'
@@ -15,6 +18,9 @@ myscratch = '/global/cscratch1/sd/chmodi/m3127/H1mass/'
 
 bs, nc = 256, 256
 pm = ParticleMesh(BoxSize = bs, Nmesh = [nc, nc, nc])
+comm = pm.comm
+rank = comm.rank
+
 # sim = '/lowres/%d-9100-fixed'%256
 sim = '/highres/%d-9100-fixed'%2560
 aafiles = np.array([0.1429, 0.1538, 0.1667, 0.1818, 0.2000, 0.2222, 0.2500, 0.2857, 0.3333])
@@ -22,33 +28,18 @@ aafiles = np.array([0.1429, 0.1538, 0.1667, 0.1818, 0.2000, 0.2222, 0.2500, 0.28
 #aafiles = aafiles[:1]
 zzfiles = np.array([round(tools.atoz(aa), 2) for aa in aafiles])
 
-
-
-
-def HI_masscutfiddle(mhalo,aa):
-    """Returns the 21cm "mass" for a box of halo masses."""
-    zp1 = 1.0/aa
-    zz  = zp1-1
-    alp = 1.0
-    alp = (1+2*zz)/(2+2*zz)
-    mcut= 1e9*( 1.8 + 15*(3*aa)**8 )
-    norm= 3e5*(1+(3.5/zz)**6)
-    xx  = mhalo/mcut+1e-10
-    mHI = xx**alp * np.exp(-1/xx)
-    mHI*= norm
-    return(mHI)
-    #
-#
-
-
-
 ##Satellites
 
-hpos, hmass, hid, h1mass = tools.readinhalos(aafiles, sim)
+hpos, hmass, hid, h1mass, h1size = tools.readinhalos(aafiles, sim, HI_hod=None)
 
-for suff in ['-m1_00p3mh-alpha-0p8-v2', '-m1_00p3mh-alpha-0p9-v2', '-m1_00p5mh-alpha-0p8-v2', '-m1_00p5mh-alpha-0p9-v2']:
+#for suff in ['-m1_00p3mh-alpha-0p8-v2', '-m1_00p3mh-alpha-0p9-v2', '-m1_00p5mh-alpha-0p8-v2', '-m1_00p5mh-alpha-0p9-v2']:
+m1fac = 0.03
+alpha = -0.8
+hodparams = [m1fac, alpha]
 
-    subf = suff[1:]
+for suff in [ '-m1_%02dp%dmh-alpha-0p8-subvol'%(int(m1fac*10), (m1fac*100)%10)]:
+
+    subf = 'fid3/'+  suff[1:]
     try: 
         os.makedirs('./figs/%s'%subf)
     except:pass
@@ -56,10 +47,28 @@ for suff in ['-m1_00p3mh-alpha-0p8-v2', '-m1_00p3mh-alpha-0p9-v2', '-m1_00p5mh-a
 
     print('\n%s\n'%suff)
     start = time()
-    cpos, cmass, chid, ch1mass = tools.readincentrals(aafiles, suff, sim)
-    spos, smass, shid, sh1mass = tools.readinsatellites(aafiles, suff, sim)
+    cpos, cmass, chid, ch1mass, csize = tools.readincentrals(aafiles, suff, sim, HI_hod=None)
+    spos, smass, shid, sh1mass, ssize = tools.readinsatellites(aafiles, suff, sim, HI_hod=None) 
+
+
+    for iz, zz in enumerate(zzfiles):
+
+        aa = 1/(zz+1)
+        model = ModelA(aa)
+        start = time()
+        h1mass[zz] = model.assignhalo(hmass[zz])
+        print('For halos : ', time() - start)
+        start = time()
+        sh1mass[zz] = model.assignsat(smass[zz])        
+        print('For sat : ', time() - start)
+        print('Populating centrals for ', iz)
+        start = time()
+        ch1mass[zz] = model.assigncen(h1mass[zz], sh1mass[zz], shid[zz], csize[zz], comm) 
+        print('For cen : ', time() - start)
+    
     print('Time to read all catalogs : ', time()-start)
     
+
 
     print('Bin Halos')
     hbins, hcount, hm, hh1 = {}, {}, {}, {}

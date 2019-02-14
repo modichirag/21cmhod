@@ -10,7 +10,7 @@ plt.switch_backend('Agg')
 #Global, fixed things
 scratch = '/global/cscratch1/sd/yfeng1/m3127/'
 project = '/project/projectdirs/m3127/H1mass/'
-figpath = './figs/'
+figpath = '../figs/'
 
 cosmodef = {'omegam':0.309167, 'h':0.677, 'omegab':0.048}
 aafiles = [0.1429, 0.1538, 0.1667, 0.1818, 0.2000, 0.2222, 0.2500, 0.2857, 0.3333]
