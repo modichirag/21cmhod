@@ -48,45 +48,50 @@ def readinhalos(aafiles, sim, dpath=project, HI_hod=HI_hod):
     aafiles = np.array(aafiles)
     zzfiles = np.array([round(atoz(aa), 2) for aa in aafiles])
     hpos, hmass, hid, h1mass = {}, {}, {}, {}
-
+    size = {}
+    
     for i, aa in enumerate(aafiles):
         zz = zzfiles[i]
         halos = BigFileCatalog(dpath + sim+ '/fastpm_%0.4f/halocat/'%aa)
         hmass[zz] = halos["Mass"].compute() 
-        h1mass[zz] = HI_hod(halos['Mass'].compute(), aa)
+        if HI_hod is not None: h1mass[zz] = HI_hod(halos['Mass'].compute(), aa)
         hpos[zz] = halos['Position'].compute()
         hid[zz] = np.arange(hmass[zz].size).astype(int)
-    return hpos, hmass, hid, h1mass
+        size[zz] = halos.csize
+    return hpos, hmass, hid, h1mass, size
 
 
 
-def readincentrals(aafiles, suff, sim, dpath=myscratch):
+def readincentrals(aafiles, suff, sim, dpath=myscratch, HI_hod=HI_hod):
     aafiles = np.array(aafiles)
     zzfiles = np.array([round(atoz(aa), 2) for aa in aafiles])
 
     cpos, cmass, ch1mass, chid = {}, {}, {}, {}
+    size = {}
     for i, aa in enumerate(aafiles):
         zz = zzfiles[i]
         cen = BigFileCatalog(dpath + sim+ '/fastpm_%0.4f/cencat'%aa+suff)
         cmass[zz] = cen["Mass"].compute()
-        ch1mass[zz] = HI_hod(cen['Mass'].compute(), aa)
+        if HI_hod is not None: ch1mass[zz] = HI_hod(cen['Mass'].compute(), aa)
         cpos[zz] = cen['Position'].compute()
-        chid[zz] = cen['HaloID'].compute()
-    return cpos, cmass, chid, ch1mass
+        chid[zz] = cen['GlobalID'].compute()
+        size[zz] = cen.csize
+    return cpos, cmass, chid, ch1mass, size
 
 
 
-def readinsatellites(aafiles, suff, sim, dpath=myscratch):
+def readinsatellites(aafiles, suff, sim, dpath=myscratch, HI_hod=HI_hod):
     aafiles = np.array(aafiles)
     zzfiles = np.array([round(atoz(aa), 2) for aa in aafiles])
 
     spos, smass, sh1mass, shid = {}, {}, {}, {}
+    size = {}
     for i, aa in enumerate(aafiles):
         zz = zzfiles[i]
         sat = BigFileCatalog(dpath + sim+ '/fastpm_%0.4f/satcat'%aa+suff)
         smass[zz] = sat["Mass"].compute()
-        sh1mass[zz] = HI_hod(sat['Mass'].compute(), aa)
+        if HI_hod is not None: sh1mass[zz] = HI_hod(sat['Mass'].compute(), aa)
         spos[zz] = sat['Position'].compute()
-        shid[zz] = sat['HaloID'].compute()
-
-    return spos, smass, shid, sh1mass
+        shid[zz] = sat['GlobalID'].compute()
+        size[zz] = sat.csize
+    return spos, smass, shid, sh1mass, size

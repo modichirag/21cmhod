@@ -1,7 +1,7 @@
 import numpy as np
 import re, os
 from pmesh.pm     import ParticleMesh
-from nbodykit.lab import BigFileCatalog, MultipleSpeciesCatalog, FFTPower
+from nbodykit.lab import BigFileCatalog, BigFileMesh, MultipleSpeciesCatalog, FFTPower
 from nbodykit     import setup_logging
 from mpi4py       import MPI
 
@@ -31,8 +31,10 @@ rank = pm.comm.rank
 comm = pm.comm
 
 
-#Which model to use
-HImodel = HImodels.ModelA
+#Which model & configuration to use
+HImodel = HImodels.ModelA2
+modelname = 'modelA2'
+mode = 'galaxies'
 ofolder = '../data/outputs/'
 
 
@@ -66,9 +68,10 @@ def read_conversions(db):
 
 
 
-
-def calc_pk1d(aa,outfolder):
+def calc_pk1d(aa, h1mesh, outfolder):
     '''Compute the 1D redshift-space P(k) for the HI'''
+
+    if rank==0: print('Calculating pk1d')
     pkh1h1   = FFTPower(h1mesh,mode='1d',kmin=0.025,dk=0.0125).power
     # Extract the quantities we want and write the file.
     kk   = pkh1h1['k']
@@ -86,11 +89,10 @@ def calc_pk1d(aa,outfolder):
 
 
 
-def calc_pkmu(aa,outfolder):
+def calc_pkmu(aa, h1mesh, outfolder, los=[0,0,1]):
     '''Compute the redshift-space P(k) for the HI in mu bins'''
-    if rank==0: print('Read in central/satellite catalogs')
-    h1mesh = allcat.to_mesh(BoxSize=bs,Nmesh=[nc,nc,nc],\
-                             position='RSDpos',weight='HImass')
+
+    if rank==0: print('Calculating pkmu')
     pkh1h1 = FFTPower(h1mesh,mode='2d',Nmu=4,los=los).power
     # Extract what we want.
     kk = pkh1h1.coords['k']
@@ -114,13 +116,12 @@ def calc_pkmu(aa,outfolder):
     #
 
 
-    
 
 
-
-def calc_pkll(aa,outfolder):
+def calc_pkll(aa, h1mesh, outfolder, los=[0,0,1]):
     '''Compute the redshift-space P_ell(k) for the HI'''
-    if rank==0: print('Read in central/satellite catalogs')
+
+    if rank==0: print('Calculating pkll')
     pkh1h1 = FFTPower(h1mesh,mode='2d',Nmu=8,los=los,\
                       kmin=0.02,dk=0.02,poles=[0,2,4]).poles
     # Extract the quantities of interest.
@@ -143,19 +144,61 @@ def calc_pkll(aa,outfolder):
     #
 
 
+
+def calc_bias(aa,h1mesh,suff):
+    '''Compute the bias(es) for the HI'''
+
+    if rank==0: print('Calculating bias')
+    if rank==0:
+        print("Processing a={:.4f}...".format(aa))
+        print('Reading DM mesh...')
+    if ncsim == 10240:
+        dm    = BigFileMesh(scratchyf+sim+'/fastpm_%0.4f/'%aa+\
+                            '/1-mesh/N%04d'%nc,'').paint()
+    else:
+        dm    = BigFileMesh(project+sim+'/fastpm_%0.4f/'%aa+\
+                        '/dmesh_N%04d/1/'%nc,'').paint()
+    dm   /= dm.cmean()
+    if rank==0: print('Computing DM P(k)...')
+    pkmm  = FFTPower(dm,mode='1d').power
+    k,pkmm= pkmm['k'],pkmm['power']  # Ignore shotnoise.
+    if rank==0: print('Done.')
+    #
+
+    pkh1h1 = FFTPower(h1mesh,mode='1d').power
+    kk = pkh1h1.coords['k']
+
+    pkh1h1 = pkh1h1['power']-pkh1h1.attrs['shotnoise']
+    pkh1mm = FFTPower(h1mesh,second=dm,mode='1d').power['power']
+    if rank==0: print('Done.')
+    # Compute the biases.
+    b1x = np.abs(pkh1mm/(pkmm+1e-10))
+    b1a = np.abs(pkh1h1/(pkmm+1e-10))**0.5
+    if rank==0: print("Finishing processing a={:.4f}.".format(aa))
+
+    #
+    if rank==0:
+        fout = open(outfolder + "HI_bias_{:6.4f}.txt".format(aa),"w")
+        fout.write("# {:>8s} {:>10s} {:>10s} {:>15s}\n".\
+                   format("k","b1_x","b1_a","Pkmm"))
+        for i in range(1,kk.size):
+            fout.write("{:10.5f} {:10.5f} {:10.5f} {:15.5e}\n".\
+                       format(kk[i],b1x[i],b1a[i],pkmm[i].real))
+        fout.close()
+
     
     
 
 if __name__=="__main__":
     if rank==0: print('Starting')
     suff='-m1_00p3mh-alpha-0p8-subvol'
-    outfolder = ofolder + suff[1:] + "/modelA/"
+    outfolder = ofolder + suff[1:] + "/%s/"%modelname
     try: 
         os.makedirs(outfolder)
     except : pass
 
     for aa in alist:
-
+        if rank == 0: print('\n ############## Redshift = %0.2f ############## \n'%(1/aa-1))
         halocat = BigFileCatalog(scratchyf + sim+ '/fastpm_%0.4f//'%aa, dataset='LL-0.200')
         mp = halocat.attrs['MassTable'][1]*1e10##
         halocat['Mass'] = halocat['Length'].compute() * mp
@@ -163,24 +206,20 @@ if __name__=="__main__":
         satcat = BigFileCatalog(scratchcm + sim+'/fastpm_%0.4f/satcat'%aa+suff)
         rsdfac = read_conversions(scratchyf + sim+'/fastpm_%0.4f/'%aa)
         #
-        los = [0,0,1]
-        cencat['RSDpos'] = cencat['Position']+cencat['Velocity']*los * rsdfac
-        satcat['RSDpos'] = satcat['Position']+satcat['Velocity']*los * rsdfac
-        
+
         HImodelz = HImodel(aa)
+        los = [0,0,1]
         halocat['HImass'], cencat['HImass'], satcat['HImass'] = HImodelz.assignHI(halocat, cencat, satcat)
+        halocat['RSDpos'], cencat['RSDpos'], satcat['RSDpos'] = HImodelz.assignrsd(rsdfac, halocat, cencat, satcat, los=los)
 
-        rankHImass       = cencat['HImass'].sum().compute() +\
-                           satcat['HImass'].sum().compute()
-        totHImass        = comm.allreduce(rankHImass)
-        cencat['HImass']/= totHImass/float(nc)**3
-        satcat['HImass']/= totHImass/float(nc)**3
-        allcat = MultipleSpeciesCatalog(['cen','sat'],cencat,satcat)
-        h1mesh = allcat.to_mesh(BoxSize=bs,Nmesh=[nc,nc,nc],\
-                                 position='RSDpos',weight='HImass')
+        if rank == 0: print('Creating HI mesh in redshift space')
+        h1mesh = HImodelz.createmesh(bs, nc, halocat, cencat, satcat, mode=mode, position='RSDpos', weight='HImass')
 
-        calc_pk1d(aa,outfolder)
-        calc_pkmu(aa,outfolder)
-        calc_pkll(aa,outfolder)
-    #
+        calc_pk1d(aa, h1mesh, outfolder)
+        calc_pkmu(aa, h1mesh, outfolder, los=los)
+        calc_pkll(aa, h1mesh, outfolder, los=los)
+
+        if rank == 0: print('Creating HI mesh in real space for bias')
+        h1mesh = HImodelz.createmesh(bs, nc, halocat, cencat, satcat, mode=mode, position='Position', weight='HImass')
+        calc_bias(aa, h1mesh, outfolder)
 

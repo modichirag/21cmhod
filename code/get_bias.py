@@ -36,7 +36,7 @@ ofolder = '../data/outputs/'
 
 
 
-def calc_bias(aa,suff):
+def calc_bias(aa,h1mesh,suff):
     '''Compute the bias(es) for the HI'''
     if rank==0:
         print("Processing a={:.4f}...".format(aa))
@@ -53,34 +53,7 @@ def calc_bias(aa,suff):
     k,pkmm= pkmm['k'],pkmm['power']  # Ignore shotnoise.
     if rank==0: print('Done.')
     #
-    if rank==0: print('Reading central/satellite catalogs...')
 
-    halocat = BigFileCatalog(scratchyf + sim+ '/fastpm_%0.4f//'%aa, dataset='LL-0.200')
-    mp = halocat.attrs['MassTable'][1]*1e10##
-    halocat['Mass'] = halocat['Length'].compute() * mp
-    cencat = BigFileCatalog(scratchcm + sim+'/fastpm_%0.4f/cencat'%aa+suff)
-    cencat = BigFileCatalog(scratchcm + sim+'/fastpm_%0.4f/cencat'%aa+suff)
-    satcat = BigFileCatalog(scratchcm + sim+'/fastpm_%0.4f/satcat'%aa+suff)
-    
-
-    HImodelz = HImodel(aa)
-    halocat['HImass'], cencat['HImass'], satcat['HImass'] = HImodelz.assignHI(halocat, cencat, satcat)
-
-    #
-    if rank==0: print('Computing HI masses...')
-    rankHImass       = cencat['HImass'].sum().compute() +\
-                       satcat['HImass'].sum().compute()
-    rankHImass = np.array([rankHImass])
-    totHImass  = np.zeros(1,dtype='float')
-    comm.Allreduce(rankHImass,totHImass,MPI.SUM)
-    totHImass  = totHImass[0]
-    cencat['HImass']/= totHImass/float(nc)**3
-    satcat['HImass']/= totHImass/float(nc)**3
-    if rank==0: print('HI masses done.')
-    #
-    if rank==0: print('Combining catalogs and computing P(k)...')
-    allcat = MultipleSpeciesCatalog(['cen','sat'],cencat,satcat)
-    h1mesh = allcat.to_mesh(BoxSize=bs,Nmesh=[nc,nc,nc],weight='HImass')
     pkh1h1 = FFTPower(h1mesh,mode='1d').power
     pkh1h1 = pkh1h1['power']-pkh1h1.attrs['shotnoise']
     pkh1mm = FFTPower(h1mesh,second=dm,mode='1d').power['power']
@@ -106,13 +79,26 @@ if __name__=="__main__":
     if rank==0:
         print('Starting')
     for aa in alist:
-        zz   = 1.0/aa-1.0
-        mcut = 2e10*aa
-        mcut = 1e10*np.exp(-(zz-2.0))
-        mcut = 1.5e10*(3*aa)**3
-        mcut = 3e9
-        mcut = 1e9*( 1.8 + 15*(3*aa)**8 )
-        kk,b1x,b1a,pkmm = calc_bias(aa,suff)
+
+
+        if rank == 0: print('\n ############## Redshift = %0.2f ############## \n'%(1/aa-1))
+        halocat = BigFileCatalog(scratchyf + sim+ '/fastpm_%0.4f//'%aa, dataset='LL-0.200')
+        mp = halocat.attrs['MassTable'][1]*1e10##
+        halocat['Mass'] = halocat['Length'].compute() * mp
+        cencat = BigFileCatalog(scratchcm + sim+'/fastpm_%0.4f/cencat'%aa+suff)
+        satcat = BigFileCatalog(scratchcm + sim+'/fastpm_%0.4f/satcat'%aa+suff)
+        rsdfac = read_conversions(scratchyf + sim+'/fastpm_%0.4f/'%aa)
+        #
+
+        HImodelz = HImodel(aa)
+        los = [0,0,1]
+        halocat['HImass'], cencat['HImass'], satcat['HImass'] = HImodelz.assignHI(halocat, cencat, satcat)
+        halocat['RSDpos'], cencat['RSDpos'], satcat['RSDpos'] = HImodelz.assignrsd(rsdfac, halocat, cencat, satcat, los=los)
+
+        h1mesh = HImodelz.createmesh(bs, nc, halocat, cencat, satcat, mode='galaxies', position='RSDpos', weight='HImass')
+
+        kk,b1x,b1a,pkmm = calc_bias(aa,h1mesh,suff)
+
         #
         if rank==0:
             fout = open(outfolder + "HI_bias_{:6.4f}.txt".format(aa),"w")
