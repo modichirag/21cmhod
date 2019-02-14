@@ -22,24 +22,14 @@ cosmodef = {'omegam':0.309167, 'h':0.677, 'omegab':0.048}
 cosmo = Cosmology.from_dict(cosmodef)
 print(cosmo)
 aafiles = [0.1429, 0.1538, 0.1667, 0.1818, 0.2000, 0.2222, 0.2500, 0.2857, 0.3333]
-aafiles = aafiles[:1]
+#aafiles = aafiles[:1]
 zzfiles = [round(tools.atoz(aa), 2) for aa in aafiles]
 
 #Paramteres
 #Maybe set up to take in as args file?
-#bs, nc, ncsim, sim, prefix = 256, 256, 256, 'lowres/%d-9100-fixed'%256, 'lowres'
+bs, nc, ncsim, sim, prefix = 256, 256, 256, 'lowres/%d-9100-fixed'%256, 'lowres'
 bs, nc, ncsim, sim, prefix = 256, 256, 2560, 'highres/%d-9100-fixed'%2560, 'highres'
 #bs, nc, ncsim, sim, prefix = 1024, 1024, 10240, 'highres/%d-9100-fixed'%10240, 'highres'
-
-
-
-def readincatalog(aa):
-
-    halocat = BigFileCatalog(scratch + sim + '/fastpm_%0.4f/'%aa, dataset='LL-0.200')
-    mp = halocat.attrs['MassTable'][1]*1e10
-    halocat['Mass'] = halocat['Length'] * mp
-    halocat['Position'] = halocat['Position']%bs # Wrapping positions assuming periodic boundary conditions
-    return halocat
 
 
 
@@ -47,8 +37,21 @@ def make_galcat(aa, mmin, m1f, alpha=-1, censuff=None, satsuff=None, ofolder=Non
     '''Assign 0s to 
     '''
     zz = tools.atoz(aa)
-    halocat = readincatalog(aa)
+    #halocat = readincatalog(aa)
+    halocat = BigFileCatalog(scratch + sim + '/fastpm_%0.4f/'%aa, dataset='LL-0.200')
     rank = halocat.comm.rank
+
+    halocat.attrs['BoxSize'] = np.broadcast_to(halocat.attrs['BoxSize'], 3)
+
+    ghid = halocat.Index.compute()
+    halocat['GlobalIndex'] = ghid
+    mp = halocat.attrs['MassTable'][1]*1e10
+    halocat['Mass'] = halocat['Length'] * mp
+    halocat['Position'] = halocat['Position']%bs # Wrapping positions assuming periodic boundary conditions
+    rank = halocat.comm.rank
+    
+    halocat = halocat.to_subvolumes()
+
     if rank == 0: print('\n ############## Redshift = %0.2f ############## \n'%zz)
 
     hmass = halocat['Mass'].compute()
@@ -56,7 +59,7 @@ def make_galcat(aa, mmin, m1f, alpha=-1, censuff=None, satsuff=None, ofolder=Non
     hvel = halocat['Velocity'].compute()
     rvir = HaloRadius(hmass, cosmo, 1/aa-1).compute()/aa
     vdisp = HaloVelocityDispersion(hmass, cosmo, 1/aa-1).compute()
-    ghid = halocat.Index.compute()
+    ghid = halocat['GlobalIndex'].compute()
 
     print('In rank = %d, Catalog size = '%rank, hmass.size)
     #Do hod    
@@ -65,7 +68,7 @@ def make_galcat(aa, mmin, m1f, alpha=-1, censuff=None, satsuff=None, ofolder=Non
     nsat = hod.nsat_martin(msat = mmin, mh=hmass, m1f=m1f, alpha=alpha).astype(int)
     
     #Centrals
-    cpos, cvel, gchid = hpos, hvel, ghid
+    cpos, cvel, gchid, chid = hpos, hvel, ghid, np.arange(ncen.size)
     spos, svel, shid = hod.mksat(nsat, pos=hpos, vel=hvel, 
                                  vdisp=vdisp, conc=7, rvir=rvir, vsat=0.5, seed=seed)
     gshid = ghid[shid]
@@ -77,13 +80,16 @@ def make_galcat(aa, mmin, m1f, alpha=-1, censuff=None, satsuff=None, ofolder=Non
     smmin[mask] = smmax[mask]/3.
     smass = hod.get_msat(hmass[shid], smmax, smmin, alpha)
 
-
-    #get satellite mass in every halo
-    sathmass = np.zeros_like(hmass)
-    unipos, unicount = np.unique(shid, return_inverse=True)
-    for i in range(unicount.size):
-        sathmass[unipos[unicount[i]]] +=  smass[i]
+    ##get satellite mass in every halo
+    #sathmass = np.zeros_like(hmass)
+    #unipos, unicount = np.unique(shid, return_inverse=True)
+    #for i in range(unicount.size):
+    #    sathmass[unipos[unicount[i]]] +=  smass[i]
     
+    sathmass = np.zeros_like(hmass)
+    tot = np.bincount(shid, smass)
+    sathmass[np.unique(shid)] = tot
+
     cmass = hmass - sathmass    # assign remaining mass in centrals
 
     print('In rank = %d, Time taken = '%rank, time()-start)
@@ -91,15 +97,20 @@ def make_galcat(aa, mmin, m1f, alpha=-1, censuff=None, satsuff=None, ofolder=Non
     print('In rank = %d, Satellite occupancy: Max and mean = '%rank, nsat.max(), nsat.mean())
     #
     #Save
-    cencat = ArrayCatalog({'Position':cpos, 'Velocity':cvel, 'Mass':cmass,  'HaloID':gchid}, 
+    cencat = ArrayCatalog({'Position':cpos, 'Velocity':cvel, 'Mass':cmass,  'GlobalID':gchid, 
+                           'Nsat':nsat, 'HaloMass':hmass}, 
                           BoxSize=halocat.attrs['BoxSize'], Nmesh=halocat.attrs['NC'])
+    cencat = cencat.sort('GlobalID')
+
     if censuff is not None:
         colsave = [cols for cols in cencat.columns]
         cencat.save(ofolder+'cencat'+censuff, colsave)
     
 
-    satcat = ArrayCatalog({'Position':spos, 'Velocity':svel, 'Velocity_HI':svelh1, 'Mass':smass,  'HaloID':gshid, 'LocalHaloID':shid}, 
+    satcat = ArrayCatalog({'Position':spos, 'Velocity':svel, 'Velocity_HI':svelh1, 'Mass':smass,  
+                           'GlobalID':gshid, 'HaloMass':hmass[shid]}, 
                           BoxSize=halocat.attrs['BoxSize'], Nmesh=halocat.attrs['NC'])
+    satcat = satcat.sort('GlobalID')
     if satsuff is not None:
         colsave = [cols for cols in satcat.columns]
         satcat.save(ofolder+'satcat'+satsuff, colsave)
@@ -121,9 +132,9 @@ if __name__=="__main__":
 
 
         alpha = -0.8
-        for m1fac in [0.05]:
-            censuff ='-m1_%02dp%dmh-alpha-0p8-v2'%(int(m1fac*10), (m1fac*100)%10)
-            satsuff ='-m1_%02dp%dmh-alpha-0p8-v2'%(int(m1fac*10), (m1fac*100)%10)
+        for m1fac in [0.03]:
+            censuff ='-m1_%02dp%dmh-alpha-0p8-subvol'%(int(m1fac*10), (m1fac*100)%10)
+            satsuff ='-m1_%02dp%dmh-alpha-0p8-subvol'%(int(m1fac*10), (m1fac*100)%10)
 
             make_galcat(aa=aa, mmin=mmin, m1f=m1fac, alpha=alpha, censuff=censuff, satsuff=satsuff, ofolder=ofolder)
 

@@ -4,10 +4,32 @@ from scipy.interpolate import InterpolatedUnivariateSpline as ius
 from scipy.interpolate import interp1d, interp2d
 from scipy.special import erf
 from time import time
+from nbodykit.cosmology.cosmology import Cosmology
 
+cosmodef = {'omegam':0.309167, 'h':0.677, 'omegab':0.048}
+cosmo = Cosmology.from_dict(cosmodef)
 
 
 ##Setup nfw sampling here
+def getrvir(m, z):
+    '''https://halotools.readthedocs.io/en/latest/_modules/halotools/empirical_models/phase_space_models/analytic_models/halo_boundary_functions.html
+    '''
+    rho_crit = 3 * 100**2 /(8 * math.pi * 43.007)
+    rho_crit *= 1e10
+    x = cosmo.Om(z) - 1.0
+    delta = 18 * np.pi**2 + 82.0 * x - 39.0 * x**2
+    rho = rho_crit * delta
+    radius = (m * 3.0 / 4.0 / np.pi / rho)**(1.0 / 3.0)
+    return radius
+    
+def nfw(r, m, z, c=7):
+    rvir = getrvir(m, z)
+    Rs = rvir/c
+    mfac = 4*np.pi*Rs**3 *(np.log(1+c) - c/(1+c))
+    rho0 = m/mfac
+    return rho0/((r+1e-10)/Rs * (1 + r/Rs)**2)
+
+
 def get_nfw_r(c=7):
     '''Martin's code based on rejection sampling
     '''
@@ -29,7 +51,7 @@ def cumnfw(r, c=7):
 def ilogcdfnfw(c=7):
     '''Inverse cdf of nfw in log-scale
     '''
-    rr = np.logspace(-3, 0, 1000)
+    rr = np.logspace(-4, 0, 1000)
     cdf = cumnfw(rr, c=c)
     lrr, lcdf = np.log(rr), np.log(cdf)
     return ius(lcdf, lrr)
