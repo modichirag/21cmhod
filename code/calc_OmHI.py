@@ -4,7 +4,34 @@
 # relation, compute OmegaHI(z).
 #
 import numpy as np
+from pmesh.pm     import ParticleMesh
 from nbodykit.lab import BigFileCatalog
+
+import HImodels
+
+
+#
+#Global, fixed things
+scratchyf = '/global/cscratch1/sd/yfeng1/m3127/'
+scratchcm = '/global/cscratch1/sd/chmodi/m3127/H1mass/'
+project  = '/project/projectdirs/m3127/H1mass/'
+cosmodef = {'omegam':0.309167, 'h':0.677, 'omegab':0.048}
+alist    = [0.1429,0.1538,0.1667,0.1818,0.2000,0.2222,0.2500,0.2857,0.3333]
+
+
+bs, nc, ncsim, sim, prefix = 256, 512, 2560, 'highres/%d-9100-fixed'%2560, 'highres'
+
+# It's useful to have my rank for printing...
+pm   = ParticleMesh(BoxSize=bs, Nmesh=[nc, nc, nc])
+rank = pm.comm.rank
+comm = pm.comm
+
+
+#Which model & configuration to use
+HImodel = HImodels.ModelA
+modelname = 'ModelA'
+mode = 'galaxies'
+#ofolder = '../data/outputs/'
 
 
 
@@ -39,29 +66,33 @@ def HI_hod(mhalo,aa):
     #
 
 
-
-
-
-
-
-def calc_OmHI(aa):
+def calc_OmHI(aa, suff):
     """Sums over the halos to compute OmHI."""
     # Work out the base path.
-    Lbox=256.0
-    suff='-m1_5p0min-alpha_0p9'
-    db = "/project/projectdirs/m3127/H1mass/highres/2560-9100-fixed/"+\
-         "fastpm_{:06.4f}/".format(aa)
-    #
-    cmass  = BigFileCatalog(db+'cencat')['Mass']
-    smass  = BigFileCatalog(db+'satcat'+suff)['Mass']
-    ch1mass= HI_hod(cmass,aa)   
-    sh1mass= HI_hod(smass,aa)   
-    mHI    = ch1mass.sum().compute()+sh1mass.sum().compute()
-    # Compute effective nbar.
-    mHI2   = (ch1mass**2).sum().compute()+(sh1mass**2).sum().compute()
-    nbar   = mHI**2/mHI2/Lbox**3
+    
+    halocat = BigFileCatalog(scratchyf + sim+ '/fastpm_%0.4f//'%aa, dataset='LL-0.200')
+    mp = halocat.attrs['MassTable'][1]*1e10##
+    halocat['Mass'] = halocat['Length'].compute() * mp
+    cencat = BigFileCatalog(scratchcm + sim+'/fastpm_%0.4f/cencat'%aa+suff)
+    satcat = BigFileCatalog(scratchcm + sim+'/fastpm_%0.4f/satcat'%aa+suff)
+
+    HImodelz = HImodel(aa)
+    halocat['HImass'], cencat['HImass'], satcat['HImass'] = HImodelz.assignHI(halocat, cencat, satcat)
+
+    if mode == 'halos': catalogs = [halocat]
+    elif mode == 'galaxies': catalogs = [cencat, satcat]
+    elif mode == 'all': catalogs = [halocat, cencat, satcat]
+
+    
+    rankweight = sum([cat['HImass'].sum().compute() for cat in catalogs])
+    mHI = comm.allreduce(rankweight)
+
+    rankweight = sum([(cat['HImass']**2).sum().compute() for cat in catalogs])
+    mHI2 = comm.allreduce(rankweight)
+
     # Convert to OmegaHI.
-    rhoHI  = mHI/Lbox**3
+    nbar   = mHI**2/mHI2/bs**3
+    rhoHI  = mHI/bs**3
     cc     = Cosmology()
     OmHI   = rhoHI/cc.rhoCritCom(1/aa-1)
     # For now just print it.
@@ -73,6 +104,15 @@ def calc_OmHI(aa):
 
 
 if __name__=="__main__":
-    for aa in [0.3333,0.2857,0.2500,0.2222,0.2000,0.1818,0.1667,0.1538,0.1429]:
-        calc_OmHI(aa)
+
+    suff='-m1_00p3mh-alpha-0p8-subvol'
+
+    for aa in alist:
+        calc_OmHI(aa, suff)
     #
+
+
+
+
+
+
