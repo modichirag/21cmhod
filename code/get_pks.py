@@ -32,9 +32,9 @@ comm = pm.comm
 
 
 #Which model & configuration to use
-HImodel = HImodels.ModelA2
-modelname = 'modelA2'
-mode = 'galaxies'
+HImodel = HImodels.ModelD
+modelname = 'ModelD'
+mode = 'halos'
 ofolder = '../data/outputs/'
 
 

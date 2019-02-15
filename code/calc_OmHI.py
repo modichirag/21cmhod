@@ -30,7 +30,7 @@ comm = pm.comm
 #Which model & configuration to use
 HImodel = HImodels.ModelA
 modelname = 'ModelA'
-mode = 'galaxies'
+mode = 'halos'
 #ofolder = '../data/outputs/'
 
 
@@ -96,7 +96,7 @@ def calc_OmHI(aa, suff):
     cc     = Cosmology()
     OmHI   = rhoHI/cc.rhoCritCom(1/aa-1)
     # For now just print it.
-    print("{:6.2f} {:12.4e} {:12.4e}".format(1/aa-1,OmHI,nbar))
+    if rank == 0: print("{:6.2f} {:12.4e} {:12.4e}".format(1/aa-1,OmHI,nbar))
     #
 
 

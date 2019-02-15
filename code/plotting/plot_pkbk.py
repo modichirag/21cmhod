@@ -6,14 +6,22 @@ import numpy as np
 import os
 import matplotlib.pyplot as plt
 
+#
+import argparse
+parser = argparse.ArgumentParser()
+parser.add_argument('-m', '--model', help='model name to use')
+args = parser.parse_args()
+print(args, args.model)
+
+
+model = args.model #'ModelD'
 suff = 'm1_00p3mh-alpha-0p8-subvol'
-model = 'modelA'
 dpath = '../../data/outputs/%s/%s/'%(suff, model)
-figpath = '../figs/%s/%s/'%(suff, model)
+figpath = '../../figs/%s/'%(suff)
 try: os.makedirs(figpath)
 except: pass
 
-def make_pkr_plot():
+def make_pkr_plot(fname):
     """Does the work of making the real-space P(k) figure."""
     zlist = [2.00,2.50,3.00,4.00,5.00,6.00]
     blist = [1.91,2.02,2.18,2.60,3.10,3.66]
@@ -58,13 +66,13 @@ def make_pkr_plot():
     ax[2,0].set_ylabel(r'$P(k)\quad [h^{-3}{\rm Mpc}^3]$')
     # and finish up.
     plt.tight_layout()
-    plt.savefig('HI_pkr.pdf')
+    plt.savefig(fname)
     #
 
 
 
 
-def make_pks_plot():
+def make_pks_plot(fname):
     """Does the work of making the redshift-space P(k) figure."""
     zlist = [2.00,2.50,3.00,4.00,5.00,6.00]
     blist = [1.91,2.02,2.18,2.60,3.10,3.66]
@@ -121,7 +129,7 @@ def make_pks_plot():
     ax[2,0].set_ylabel(r'$k^2\ P(k,\mu)$')
     # and finish up.
     plt.tight_layout()
-    plt.savefig('HI_pks.pdf')
+    plt.savefig(fname)
     #
 
 
@@ -130,7 +138,7 @@ def make_pks_plot():
 
 
 
-def make_bkr_plot():
+def make_bkr_plot(fname):
     """Does the work of making the real-space b(k) figure."""
     zlist = [2.0,2.5,3.0,3.5,4.0,4.5,5.0,5.5,6.0]
     clist = ['b','b','c','c','g','g','m','r','r']
@@ -159,17 +167,13 @@ def make_bkr_plot():
     ax[0].set_ylabel(r'$b(k)$')
     # and finish up.
     plt.tight_layout()
-    plt.savefig('HI_bkr.pdf')
+    plt.savefig(fname)
     #
 
 
 
-
-
-
-
 if __name__=="__main__":
-    make_pkr_plot()
-    make_pks_plot()
-    #make_bkr_plot()
+    make_pkr_plot(figpath + 'HI_pkr_%s.pdf'%model)
+    make_pks_plot(figpath + 'HI_pks_%s.pdf'%model)
+    make_bkr_plot(figpath + 'HI_bkr_%s.pdf'%model)
     #

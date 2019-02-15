@@ -6,18 +6,25 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.interpolate import LSQUnivariateSpline as Spline
 from scipy.signal import savgol_filter
+#
+import argparse
+parser = argparse.ArgumentParser()
+parser.add_argument('-m', '--model', help='model name to use')
+args = parser.parse_args()
+print(args, args.model)
 
 
 
+model = args.model #'ModelD'
+suff = 'm1_00p3mh-alpha-0p8-subvol'
+dpath = '../../data/outputs/%s/%s/'%(suff, model)
+figpath = '../../figs/%s/'%(suff)
+try: os.makedirs(figpath)
+except: pass
 
 
 
-
-
-
-
-
-def make_bao_plot():
+def make_bao_plot(fname):
     """Does the work of making the BAO figure."""
     zlist = [2.0,3.0,4.0,5.0,6.0]
     clist = ['b','c','g','m','r']
@@ -27,10 +34,10 @@ def make_bao_plot():
     for zz,col in zip(zlist,clist):
         # Read the data from file.
         aa  = 1.0/(1.0+zz)
-        pkd = np.loadtxt("HI_pks_1d_{:06.4f}.txt".format(aa))
+        pkd = np.loadtxt(dpath + "HI_bias_{:06.4f}.txt".format(aa))[1:,:]
         # Now read linear theory and put it on the same grid -- currently
         # not accounting for finite bin width.
-        lin = np.loadtxt("pklin_{:06.4f}.txt".format(aa))
+        lin = np.loadtxt("../../data/pklin_{:6.4f}.txt".format(aa))
         lin = np.interp(pkd[:,0],lin[:,0],lin[:,1])
         # Take out the broad band.
         if False: # Use smoothing spline as broad-band/no-wiggle.
@@ -64,15 +71,10 @@ def make_bao_plot():
     ax[0].set_ylabel(r'$P(k)/P_{\rm nw}(k)$+offset')
     # and finish up.
     plt.tight_layout()
-    plt.savefig('HI_bao.pdf')
+    plt.savefig(fname)
     #
 
 
-
-
-
-
-
 if __name__=="__main__":
-    make_bao_plot()
+    make_bao_plot(figpath + 'HI_bao_%s.pdf'%model)
     #
