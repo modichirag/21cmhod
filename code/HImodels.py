@@ -37,14 +37,19 @@ class ModelA():
         mHI*= self.normsat
         return mHI
         
-    def assigncen(self, mHIhalo, mHIsat, satid, censize, comm):
-        #Assumes every halo has a central...which it does...usually
+
+    def getinsat(self, mHIsat, satid, totalsize, localsize, comm):
         da = DistributedArray(satid, comm)
         mHI = da.bincount(mHIsat, shared_edges=False)
-        zerosize = censize - mHI.cshape[0]
+        zerosize = totalsize - mHI.cshape[0]
         zeros = DistributedArray.cempty(cshape=(zerosize, ), dtype=mHI.local.dtype, comm=comm)
         zeros.local[...] = 0
-        mHItotal = DistributedArray.concat(mHI, zeros, localsize=mHIhalo.size)
+        mHItotal = DistributedArray.concat(mHI, zeros, localsize=localsize)
+        return mHItotal
+        
+    def assigncen(self, mHIhalo, mHIsat, satid, censize, comm):
+        #Assumes every halo has a central...which it does...usually
+        mHItotal = self.getinsat(mHIsat, satid, censize, mHIhalo.size, comm)
         return mHIhalo - mHItotal.local
         
       
@@ -116,14 +121,18 @@ class ModelB():
 
     def assignhalo(self, mHIcen, mHIsat, satid, hsize, comm):
         #Assumes every halo has a central...which it does...usually
-        da = DistributedArray(satid, comm)
-        mHI = da.bincount(mHIsat, shared_edges=False)
-        zerosize = hsize - mHI.cshape[0]
-        zeros = DistributedArray.cempty(cshape=(zerosize, ), dtype=mHI.local.dtype, comm=comm)
-        zeros.local[...] = 0
-        mHItotal = DistributedArray.concat(mHI, zeros, localsize=mHIcen.size)
+        mHItotal = self.getinsat(mHIsat, satid, hsize, mHIcen.size, comm)
         return mHIcen + mHItotal.local
 
+
+    def getinsat(self, mHIsat, satid, totalsize, localsize, comm):
+        da = DistributedArray(satid, comm)
+        mHI = da.bincount(mHIsat, shared_edges=False)
+        zerosize = totalsize - mHI.cshape[0]
+        zeros = DistributedArray.cempty(cshape=(zerosize, ), dtype=mHI.local.dtype, comm=comm)
+        zeros.local[...] = 0
+        mHItotal = DistributedArray.concat(mHI, zeros, localsize=localsize)
+        return mHItotal
 
     def assignsat(self, msat, scatter=None):
         mstellar = self.moster(msat, scatter=scatter)/self.h
@@ -142,16 +151,13 @@ class ModelB():
 
 
     def moster(self, Mhalo, scatter=None):
-        """                                                                                                                                                                   
-        moster(Minf,z): 
-        Returns the stellar mass (M*/h) given Minf and z from Table 1 and                                                                                                    
-        Eq. (2,11-14) of Moster++13 [1205.5807].                                                                                                                              
-
+        """                                                                                                                                        moster(Minf,z): 
+        Returns the stellar mass (M*/h) given Minf and z from Table 1 and                                                                  
+        Eq. (2,11-14) of Moster++13 [1205.5807]. 
         This version now works in terms of Msun/h units,
         convert to Msun units in the function
-        To get "true" stellar mass, add 0.15 dex of lognormal scatter.                                                                                                        
-  
-        To get "observed" stellar mass, add between 0.1-0.45 dex extra scatter.                                                                                               
+        To get "true" stellar mass, add 0.15 dex of lognormal scatter.                    
+        To get "observed" stellar mass, add between 0.1-0.45 dex extra scatter.         
 
         """
         z = self.zz
@@ -166,7 +172,7 @@ class ModelB():
         if scatter is not None: 
             Mstar = 10**(np.log10(Mstar) + np.random.normal(0, scatter, Mstar.size))
         return Mstar*self.h
-        #                                                                                                                                                                                                                                                                                     
+        #                                                                                                                                          
 
     def assignrsd(self, rsdfac, halocat, cencat, satcat, los=[0,0,1]):
         hrsdpos = halocat['Position']+halocat['Velocity']*los * rsdfac

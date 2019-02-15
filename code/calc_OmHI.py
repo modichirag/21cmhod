@@ -28,10 +28,11 @@ comm = pm.comm
 
 
 #Which model & configuration to use
-HImodel = HImodels.ModelA
-modelname = 'ModelA'
-mode = 'halos'
-#ofolder = '../data/outputs/'
+HImodel = HImodels.ModelB
+modelname = 'ModelB'
+mode = 'galaxies'
+suff='-m1_00p3mh-alpha-0p8-subvol'
+outfolder = '../data/outputs/' + suff[1:] + "/%s/"%modelname
 
 
 
@@ -49,21 +50,6 @@ class Cosmology:
         return(rho)
         #
 
-
-
-def HI_hod(mhalo,aa):
-    """Returns the 21cm "mass" for a box of halo masses."""
-    zp1 = 1.0/aa
-    zz  = zp1-1
-    alp = (1+2*zz)/(2+2*zz)
-    mcut= 1e9*( 1.8 + 15*(3*aa)**8 )
-    norm= 2e9*np.exp(-1.8*zp1+0.05*zp1**2)
-    norm= 3e5*(1+(3.5/zz)**6)
-    xx  = mhalo/mcut+1e-10
-    mHI = xx**alp * np.exp(-1/xx)
-    mHI*= norm
-    return(mHI)
-    #
 
 
 def calc_OmHI(aa, suff):
@@ -97,6 +83,7 @@ def calc_OmHI(aa, suff):
     OmHI   = rhoHI/cc.rhoCritCom(1/aa-1)
     # For now just print it.
     if rank == 0: print("{:6.2f} {:12.4e} {:12.4e}".format(1/aa-1,OmHI,nbar))
+    return OmHI, nbar
     #
 
 
@@ -107,10 +94,13 @@ if __name__=="__main__":
 
     suff='-m1_00p3mh-alpha-0p8-subvol'
 
+    tosave = []
     for aa in alist:
-        calc_OmHI(aa, suff)
-    #
-
+        omHI, nbar = calc_OmHI(aa, suff)
+        tosave.append([1/aa-1, omHI, nbar])
+    
+    if rank == 0:
+        np.savetxt(outfolder + '/OmHI.txt', np.array(tosave), fmt='%0.5e', header='z, OmHI, nbar')
 
 
 
