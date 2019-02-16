@@ -21,8 +21,8 @@ alist    = [0.1429,0.1538,0.1667,0.1818,0.2000,0.2222,0.2500,0.2857,0.3333]
 
 
 #Parameters, box size, number of mesh cells, simulation, ...
-bs, nc, ncsim, sim, prefix = 256, 512, 2560, 'highres/%d-9100-fixed'%2560, 'highres'
-#bs,nc,ncsim, sim, prefic = 1024, 1024, 10240, 'highres/%d-9100-fixed'%ncsim, 'highres'
+#bs, nc, ncsim, sim, prefix = 256, 512, 2560, 'highres/%d-9100-fixed'%2560, 'highres'
+bs, nc, ncsim, sim, prefix = 1024, 1024, 10240, 'highres/%d-9100-fixed'%10240, 'highres'
 
 
 # It's useful to have my rank for printing...
@@ -32,9 +32,9 @@ comm = pm.comm
 
 
 #Which model & configuration to use
-HImodel = HImodels.ModelD
-modelname = 'ModelD'
-mode = 'halos'
+HImodel = HImodels.ModelA
+modelname = 'ModelA'
+mode = 'galaxies'
 ofolder = '../data/outputs/'
 
 
@@ -192,7 +192,10 @@ def calc_bias(aa,h1mesh,suff):
 if __name__=="__main__":
     if rank==0: print('Starting')
     suff='-m1_00p3mh-alpha-0p8-subvol'
-    outfolder = ofolder + suff[1:] + "/%s/"%modelname
+    outfolder = ofolder + suff[1:]
+    if bs == 1024: outfolder = outfolder + "-big"
+    outfolder += "/%s/"%modelname
+    if rank == 0: print(outfolder)
     try: 
         os.makedirs(outfolder)
     except : pass

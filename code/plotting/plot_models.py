@@ -127,10 +127,9 @@ def make_pks_plot(fname, fsize=11):
         blist.append(bias[1:10, 1].mean())
 
 
-
     # Now make the figure.
     fig,ax = plt.subplots(3,4,figsize=(12,8),sharex=True,sharey=True)
-    for im, model in enumerate(['ModelA', 'ModelA2', 'ModelB', 'ModelC', 'ModelD']):
+    for im, model in enumerate(['ModelA',  'ModelB', 'ModelC']):
 
         dpath = '../../data/outputs/%s/%s/'%(suff, model)        
         for ix in range(ax.shape[0]):
@@ -184,8 +183,67 @@ def make_pks_plot(fname, fsize=11):
     #
 
 
-if __name__=="__main__":
-    make_bias_plot(figpath + 'bias.pdf')
-    make_omHI_plot(figpath + 'omHI.pdf')
-    make_pks_plot(figpath + 'pkmu.pdf')
+
+def make_pkll_ratio_plot(fname, fsize=11):
+    """Does the work of making the distribution figure."""
+
+    # Now make the figure.
+    zlist = [2.0,2.5,3.0,4.0,5.0,6.0]
+
+
+    # Now make the figure.
+    fig,ax = plt.subplots(2, 3,figsize=(12,8),sharex=True,sharey=True)
+    for im, model in enumerate(['ModelA',  'ModelB', 'ModelC']):
+
+        dpath = '../../data/outputs/%s/%s/'%(suff, model)        
+
+        for iz, zz in enumerate(zlist):
+
+            zz = zlist[iz]
+            aa = 1.0/(1.0+zz)
+            pkd = np.loadtxt(dpath + "HI_pks_ll_{:06.4f}.txt".format(aa))[1:,:]
+            pkd1 = np.loadtxt(dpath + "HI_pks_1d_{:06.4f}.txt".format(aa))[1:,:]
+            pkb = np.loadtxt(dpath + "HI_bias_{:06.4f}.txt".format(aa))[1:,:]
+            pkr = pkb[:, 2]**2 * pkb[:, 3]
+            ipkr = ius(pkb[:, 0], pkr)
+            print(pkd.shape, pkb.shape)
+
+            axis = ax.flatten()[iz]
+            axis.plot(pkd[:,0],pkd[:,1]/ipkr(pkd[:,0]),'-',\
+                                       color='C%d'%im,alpha=0.95,label=model)
+            axis.plot(pkd1[:,0],pkd1[:,1]/ipkr(pkd1[:,0]),'--',\
+                                       color='C%d'%im,alpha=0.5,label=model)
+                # and the linear theory counterparts.
+            
+        
+            axis.set_xlim(0.02,2.0)
+            axis.set_ylim(0.7, 1.5)
+            axis.set_xscale('log')
+            #axis.set_yscale('log')
+            text = "$z={:.1f}$".format(zz)
+            axis.text(0.025,110,text,ha='left',va='top')
+            #
+            if iz==0: axis.legend(framealpha=0.5, ncol=2, loc='lower right')
+                    
+    # Put on some more labels.
+    for axis in ax[-1, :]: axis.set_xlabel(r'$k\quad [h\,{\rm Mpc}^{-1}]$')
+    for axis in ax[:, 0]: axis.set_ylabel(r'$P(k)_s/P(k)_r$')
+    for axis in ax.flatten(): 
+        for tick in axis.xaxis.get_major_ticks():
+            tick.label.set_fontsize(fsize)
+        for tick in axis.yaxis.get_major_ticks():
+            tick.label.set_fontsize(fsize)
+            
+    # and finish up.
+    plt.tight_layout()
+    plt.savefig(fname)
     #
+
+
+
+if __name__=="__main__":
+    make_pkll_ratio_plot(figpath + 'monopoleratio.pdf')
+#    make_bias_plot(figpath + 'bias.pdf')
+#    make_omHI_plot(figpath + 'omHI.pdf')
+#    make_pks_plot(figpath + 'pkmu.pdf')
+#    #

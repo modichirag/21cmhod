@@ -67,12 +67,6 @@ def make_calib_plot():
 
 
 
-
-
-
-
-
-
 if __name__=="__main__":
     make_calib_plot()
     #

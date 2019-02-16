@@ -20,16 +20,15 @@ myscratch = '/global/cscratch1/sd/chmodi/m3127/H1mass/'
 
 cosmodef = {'omegam':0.309167, 'h':0.677, 'omegab':0.048}
 cosmo = Cosmology.from_dict(cosmodef)
-print(cosmo)
 aafiles = [0.1429, 0.1538, 0.1667, 0.1818, 0.2000, 0.2222, 0.2500, 0.2857, 0.3333]
-#aafiles = aafiles[:1]
+#aafiles = aafiles[4:]
 zzfiles = [round(tools.atoz(aa), 2) for aa in aafiles]
 
 #Paramteres
 #Maybe set up to take in as args file?
 bs, nc, ncsim, sim, prefix = 256, 256, 256, 'lowres/%d-9100-fixed'%256, 'lowres'
 bs, nc, ncsim, sim, prefix = 256, 256, 2560, 'highres/%d-9100-fixed'%2560, 'highres'
-#bs, nc, ncsim, sim, prefix = 1024, 1024, 10240, 'highres/%d-9100-fixed'%10240, 'highres'
+bs, nc, ncsim, sim, prefix = 1024, 1024, 10240, 'highres/%d-9100-fixed'%10240, 'highres'
 
 
 
@@ -80,11 +79,6 @@ def make_galcat(aa, mmin, m1f, alpha=-1, censuff=None, satsuff=None, ofolder=Non
     smmin[mask] = smmax[mask]/3.
     smass = hod.get_msat(hmass[shid], smmax, smmin, alpha)
 
-    ##get satellite mass in every halo
-    #sathmass = np.zeros_like(hmass)
-    #unipos, unicount = np.unique(shid, return_inverse=True)
-    #for i in range(unicount.size):
-    #    sathmass[unipos[unicount[i]]] +=  smass[i]
     
     sathmass = np.zeros_like(hmass)
     tot = np.bincount(shid, smass)
@@ -100,7 +94,13 @@ def make_galcat(aa, mmin, m1f, alpha=-1, censuff=None, satsuff=None, ofolder=Non
     cencat = ArrayCatalog({'Position':cpos, 'Velocity':cvel, 'Mass':cmass,  'GlobalID':gchid, 
                            'Nsat':nsat, 'HaloMass':hmass}, 
                           BoxSize=halocat.attrs['BoxSize'], Nmesh=halocat.attrs['NC'])
+    minid, maxid = cencat['GlobalID'].compute().min(), cencat['GlobalID'].compute().max() 
+    if minid < 0 or maxid < 0:
+        print('before ', rank, minid, maxid)
     cencat = cencat.sort('GlobalID')
+    minid, maxid = cencat['GlobalID'].compute().min(), cencat['GlobalID'].compute().max() 
+    if minid < 0 or maxid < 0:
+        print('after ', rank, minid, maxid)
 
     if censuff is not None:
         colsave = [cols for cols in cencat.columns]
@@ -110,7 +110,14 @@ def make_galcat(aa, mmin, m1f, alpha=-1, censuff=None, satsuff=None, ofolder=Non
     satcat = ArrayCatalog({'Position':spos, 'Velocity':svel, 'Velocity_HI':svelh1, 'Mass':smass,  
                            'GlobalID':gshid, 'HaloMass':hmass[shid]}, 
                           BoxSize=halocat.attrs['BoxSize'], Nmesh=halocat.attrs['NC'])
+    minid, maxid = satcat['GlobalID'].compute().min(), satcat['GlobalID'].compute().max() 
+    if minid < 0 or maxid < 0:
+        print('before ', rank, minid, maxid)
     satcat = satcat.sort('GlobalID')
+    minid, maxid = satcat['GlobalID'].compute().min(), satcat['GlobalID'].compute().max() 
+    if minid < 0 or maxid < 0:
+        print('after ', rank, minid, maxid)
+
     if satsuff is not None:
         colsave = [cols for cols in satcat.columns]
         satcat.save(ofolder+'satcat'+satsuff, colsave)
