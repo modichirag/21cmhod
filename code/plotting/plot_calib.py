@@ -16,13 +16,13 @@ def make_calib_plot():
     # Now make the figure.
     fig,ax = plt.subplots(1,2,figsize=(6,2.5))
     # The left hand panel is DLA bias vs. redshift.
-    bDLA = np.loadtxt("boss_bDLA.txt")
+    bDLA = np.loadtxt("../../data/boss_bDLA.txt")
     ax[0].errorbar(bDLA[:,0],bDLA[:,1],yerr=bDLA[:,2],fmt='o')
     ax[0].fill_between([1.5,3.5],[1.99-0.11,1.99-0.11],\
                                  [1.99+0.11,1.99+0.11],\
                        color='lightgrey',alpha=0.5)
     # The N-body results.
-    bb = np.loadtxt("HI_bias_vs_z_fid.txt")
+    bb = np.loadtxt("../../data/HI_bias_vs_z_fid.txt")
     ax[0].plot(bb[:,0],bb[:,2],'md')
     ss = Spline(bb[::-1,0],bb[::-1,2])
     ax[0].plot(np.linspace(1.5,3.5,100),ss(np.linspace(1.5,3.5,100)),'m--')
@@ -36,7 +36,7 @@ def make_calib_plot():
     ax[0].set_yscale('linear')
     # The right hand panel is OmegaHI vs. z.
     # Read in the data and convert to "normal" OmegaHI convention.
-    dd = np.loadtxt("omega_HI_obs.txt")
+    dd = np.loadtxt("../../data/omega_HI_obs.txt")
     Ez = np.sqrt( 0.3*(1+dd[:,0])**3+0.7 )
     ax[1].errorbar(dd[:,0],1e-3*dd[:,1]/Ez**2,yerr=1e-3*dd[:,2]/Ez**2,\
                 fmt='s',mfc='None')
@@ -45,7 +45,7 @@ def make_calib_plot():
     Ez = np.sqrt( 0.3*(1+zz)**3+0.7 )
     ax[1].plot(zz,4e-4*(1+zz)**0.6/Ez**2,'k-')
     # Now plot the simulation points.
-    dd = np.loadtxt("omega_HI_sim.txt")
+    dd = np.loadtxt("../../data/omega_HI_sim.txt")
     ######################dd[:,1] *= 3e5*(1+(3.5/dd[:,0])**6) / 2e9
     ax[1].plot(dd[:,0],dd[:,1],'md')
     ss = Spline(dd[:,0],dd[:,1])
