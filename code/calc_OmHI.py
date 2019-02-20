@@ -68,7 +68,7 @@ def calc_OmHI(aa, suff):
     if mode == 'halos': catalogs = [halocat]
     elif mode == 'galaxies': catalogs = [cencat, satcat]
     elif mode == 'all': catalogs = [halocat, cencat, satcat]
-
+    catalogs = [cencat]
     
     rankweight = sum([cat['HImass'].sum().compute() for cat in catalogs])
     mHI = comm.allreduce(rankweight)
@@ -80,7 +80,8 @@ def calc_OmHI(aa, suff):
     nbar   = mHI**2/mHI2/bs**3
     rhoHI  = mHI/bs**3
     cc     = Cosmology()
-    OmHI   = rhoHI/cc.rhoCritCom(1/aa-1)
+    #OmHI   = rhoHI/cc.rhoCritCom(1/aa-1)
+    OmHI   = rhoHI/2.7754e11
     # For now just print it.
     if rank == 0: print("{:6.2f} {:12.4e} {:12.4e}".format(1/aa-1,OmHI,nbar))
     return OmHI, nbar
@@ -100,7 +101,7 @@ if __name__=="__main__":
         tosave.append([1/aa-1, omHI, nbar])
     
     if rank == 0:
-        np.savetxt(outfolder + '/OmHI.txt', np.array(tosave), fmt='%0.5e', header='z, OmHI, nbar')
+        np.savetxt(outfolder + '/OmHI2.txt', np.array(tosave), fmt='%0.5e', header='z, OmHI, nbar')
 
 
 

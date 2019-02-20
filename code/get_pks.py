@@ -32,9 +32,9 @@ comm = pm.comm
 
 
 #Which model & configuration to use
-HImodel = HImodels.ModelA
-modelname = 'ModelA'
-mode = 'galaxies'
+HImodel = HImodels.ModelB
+modelname = 'ModelB'
+mode = 'halos'
 ofolder = '../data/outputs/'
 
 
@@ -191,7 +191,7 @@ def calc_bias(aa,h1mesh,suff):
 
 if __name__=="__main__":
     if rank==0: print('Starting')
-    suff='-m1_00p3mh-alpha-0p8-subvol'
+    suff='-m1_00p3mh-alpha-0p8-subvol-checkmpsort'
     outfolder = ofolder + suff[1:]
     if bs == 1024: outfolder = outfolder + "-big"
     outfolder += "/%s/"%modelname

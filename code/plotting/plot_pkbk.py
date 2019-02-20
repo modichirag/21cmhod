@@ -5,6 +5,9 @@
 import numpy as np
 import os
 import matplotlib.pyplot as plt
+from matplotlib import rcParams
+rcParams['font.family'] = 'serif'
+
 
 #
 import argparse
@@ -15,7 +18,7 @@ print(args, args.model)
 
 
 model = args.model #'ModelD'
-suff = 'm1_00p3mh-alpha-0p8-subvol'
+suff = 'm1_00p3mh-alpha-0p8-subvol-big'
 dpath = '../../data/outputs/%s/%s/'%(suff, model)
 figpath = '../../figs/%s/'%(suff)
 try: os.makedirs(figpath)

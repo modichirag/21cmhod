@@ -3,29 +3,36 @@
 # Plots the power spectra and Fourier-space biases for the HI.
 #
 import numpy as np
+import sys, os
 import matplotlib.pyplot as plt
 from scipy.interpolate import LSQUnivariateSpline as Spline
 from scipy.signal import savgol_filter
 #
+from matplotlib import rcParams
+rcParams['font.family'] = 'serif'
 
 
 
-suff = 'm1_00p3mh-alpha-0p8-subvol'
+suff = 'm1_00p3mh-alpha-0p8-subvol-big'
 figpath = '../../figs/%s/'%(suff)
 try: os.makedirs(figpath)
 except: pass
 
 
+models = ['ModelA', 'ModelB']
+
 
 def make_satdist_plot(fname, fsize=12):
     """Plot fraction of HI in satellites as function of halo mass"""
     zlist = [2.0,2.5,3.0,3.5,4.0,4.5,5.0,5.5,6.0]
+    fig,ax = plt.subplots(3,3,figsize=(13, 13), sharex=True, sharey=True)
+    zlist = [2.0,2.5,3.0,4.0,5.0,6.0]
+    fig,ax = plt.subplots(2,3,figsize=(13, 9), sharex=True, sharey=True)
     clist = ['b','c','g','m','r']
     # Now make the figure.
 
-    fig,ax = plt.subplots(3,3,figsize=(13, 13))
 
-    for im, model in enumerate(['ModelA', 'ModelB']):
+    for im, model in enumerate(models):
         dpath = '../../data/outputs/%s/%s/'%(suff, model)
         print(model)
         for iz, zz in enumerate(zlist):
@@ -33,14 +40,10 @@ def make_satdist_plot(fname, fsize=12):
             axis = ax.flatten()[iz]
             aa  = 1.0/(1.0+zz)
             dist = np.loadtxt(dpath + "HI_dist_{:06.4f}.txt".format(aa))[1:,:]
-            #nn = dist[:, 1] + 1
-            #xx = dist[:, 0]/nn
-            #satfrac = dist[:, 4]/nn/(dist[:, 2]/nn + 1e-10)
+            dist = dist[dist[:,1] !=0]
             xx = dist[:, 0]
             satfrac = dist[:, 4]/(dist[:, 2] + 1e-10)
-            axis.plot(xx, satfrac, 'C%d.'%im, label=model)
-            #cenfrac = dist[:, 3]/nn/(dist[:, 2]/nn + 1e-10)
-            #axis.plot(xx, cenfrac, 'C%d.'%im, label=model)
+            axis.plot(xx, satfrac, 'C%d'%im, marker='.', label=model)
             
             #Formatting
             axis.set_title('z = %0.1f'%zz, fontsize=fsize)
@@ -54,8 +57,8 @@ def make_satdist_plot(fname, fsize=12):
                 tick.label.set_fontsize(fsize)
             
     # Put on some more labels.
-    for axis in ax[-1]: axis.set_xlabel(r'M$(M_{\odot}/h)$', fontsize=fsize)
-    for axis in ax[:, 0]: axis.set_ylabel(r'HI Satellite fraction', fontsize=fsize)
+    for axis in ax[-1]: axis.set_xlabel(r'M$(\rm M_{\odot}/h)$', fontsize=fsize)
+    for axis in ax[:, 0]: axis.set_ylabel(r'$\rm\frac{HI_{satellite}}{HI_{halo}}$', fontsize=fsize+2)
     # and finish up.
     plt.tight_layout()
     plt.savefig(fname)
@@ -66,12 +69,14 @@ def make_satdist_plot(fname, fsize=12):
 def make_HIfrac_dh_plot(fname, fsize=12):
     """Plot HIfraction of total in given mass bin"""
     zlist = [2.0,2.5,3.0,3.5,4.0,4.5,5.0,5.5,6.0]
+    fig,ax = plt.subplots(3,3,figsize=(13, 13), sharex=True, sharey=True)
+    zlist = [2.0,2.5,3.0,4.0,5.0,6.0]
+    fig,ax = plt.subplots(2,3,figsize=(13, 9), sharex=True, sharey=True)
     clist = ['b','c','g','m','r']
     # Now make the figure.
 
-    fig,ax = plt.subplots(3,3,figsize=(13, 13))
 
-    for im, model in enumerate(['ModelA', 'ModelB']):
+    for im, model in enumerate(models):
         dpath = '../../data/outputs/%s/%s/'%(suff, model)
         print(model)
         for iz, zz in enumerate(zlist):
@@ -79,10 +84,11 @@ def make_HIfrac_dh_plot(fname, fsize=12):
             axis = ax.flatten()[iz]
             aa  = 1.0/(1.0+zz)
             dist = np.loadtxt(dpath + "HI_dist_{:06.4f}.txt".format(aa))[1:,:]
+            dist = dist[dist[:,1] !=0]
             xx = dist[:, 0]
             nn = dist[:, 1]
             h1frac = (dist[:, 2]*nn)/(dist[:, 2]*nn).sum()
-            axis.plot(xx, h1frac, 'C%d.'%im, label=model)
+            axis.plot(xx, h1frac, 'C%d'%im, marker='.', label=model)
             #cenfrac = dist[:, 3]/nn/(dist[:, 2]/nn + 1e-10)
             #axis.plot(xx, cenfrac, 'C%d.'%im, label=model)
             
@@ -98,8 +104,8 @@ def make_HIfrac_dh_plot(fname, fsize=12):
                 tick.label.set_fontsize(fsize)
             
     # Put on some more labels.
-    for axis in ax[-1]: axis.set_xlabel(r'M$(M_{\odot}/h)$', fontsize=fsize)
-    for axis in ax[:, 0]: axis.set_ylabel(r'HI fraction in bin', fontsize=fsize)
+    for axis in ax[-1]: axis.set_xlabel(r'M$(\rm M_{\odot}/h)$', fontsize=fsize)
+    for axis in ax[:, 0]: axis.set_ylabel(r'$\frac{1}{\rm{HI}_{total}}\frac{\rm{dHI}}{\rm{dlogM}_h}$', fontsize=fsize)
     # and finish up.
     plt.tight_layout()
     plt.savefig(fname)
@@ -117,7 +123,7 @@ def make_hmf_plot(fname, fsize=13):
 
     fig,ax = plt.subplots(3,3,figsize=(13, 13))
 
-    for im, model in enumerate(['ModelA', 'ModelB']):
+    for im, model in enumerate(models):
         dpath = '../../data/outputs/%s/%s/'%(suff, model)
         print(model)
         for iz, zz in enumerate(zlist):
@@ -125,7 +131,8 @@ def make_hmf_plot(fname, fsize=13):
             axis = ax.flatten()[iz]
             aa  = 1.0/(1.0+zz)
             dist = np.loadtxt(dpath + "HI_dist_{:06.4f}.txt".format(aa))[1:,:]
-            nn = dist[:, 1]+1 
+            dist = dist[dist[:,1] !=0]
+            nn = dist[:, 1]
             xx = dist[:, 0]
             axis.plot(xx, nn, 'C%do'%im, label=model)
             axis.set_title('z = %0.1f'%zz, fontsize=fsize)
@@ -141,7 +148,7 @@ def make_hmf_plot(fname, fsize=13):
             for tick in axis.yaxis.get_major_ticks():
                 tick.label.set_fontsize(fsize)
     # Put on some more labels.
-    for axis in ax[-1]: axis.set_xlabel(r'M$(M_{\odot}/h)$', fontsize=fsize)
+    for axis in ax[-1]: axis.set_xlabel(r'M$(\rm M_{\odot}/h)$', fontsize=fsize)
     for axis in ax[:, 0]: axis.set_ylabel(r'N halos', fontsize=fsize) 
     # and finish up.
     plt.tight_layout()
@@ -152,28 +159,31 @@ def make_hmf_plot(fname, fsize=13):
 def make_H1mh_plot(fname, fsize=13):
     """Plot mHI-mHalo relation for 2 models"""
     zlist = [2.0,2.5,3.0,3.5,4.0,4.5,5.0,5.5,6.0]
+    fig,ax = plt.subplots(3,3,figsize=(13, 13), sharex=True, sharey=True)
+    zlist = [2.0,2.5,3.0,4.0,5.0,6.0]
+    fig,ax = plt.subplots(2,3,figsize=(13, 9), sharex=True, sharey=True)
     clist = ['b','c','g','m','r']
     # Now make the figure.
 
-    fig,ax = plt.subplots(3,3,figsize=(13, 13))
-
-    for im, model in enumerate(['ModelA', 'ModelB']):
+    
+    for im, model in enumerate(models):
         dpath = '../../data/outputs/%s/%s/'%(suff, model)
         print(model)
         for iz, zz in enumerate(zlist):
             # Read the data from file.
             axis = ax.flatten()[iz]
             aa  = 1.0/(1.0+zz)
-            dist = np.loadtxt(dpath + "HI_dist_{:06.4f}.txt".format(aa))[1:,:]
+            dist = np.loadtxt(dpath + "HI_dist_{:06.4f}.txt".format(aa))[1:-1,:]
+            dist = dist[dist[:,1] !=0]
             xx = dist[:, 0]
             yy = dist[:, 2]
-            axis.plot(xx, yy, 'C%do'%im, label=model)
+            axis.plot(xx, yy, 'C%d'%im, marker='.', label=model)
 
             #Formatting
             axis.set_title('z = %0.1f'%zz, fontsize=fsize)
             axis.set_xscale('log')
             axis.set_yscale('log')
-            #axis.set_ylim(0, 1.1)
+            axis.set_ylim(8e4, 1.1e11)
             axis.grid(which='both')
             axis.grid(which='both')
             if iz == 0: axis.legend(fontsize=fsize)
@@ -182,8 +192,8 @@ def make_H1mh_plot(fname, fsize=13):
             for tick in axis.yaxis.get_major_ticks():
                 tick.label.set_fontsize(fsize)
     # Put on some more labels.
-    for axis in ax[-1]: axis.set_xlabel(r'M$(M_{\odot}/h)$', fontsize=fsize)
-    for axis in ax[:, 0]: axis.set_ylabel(r'M$_{HI}(M_{\odot}/h)$', fontsize=fsize)
+    for axis in ax[-1]: axis.set_xlabel(r'M$(\rm M_{\odot}/h)$', fontsize=fsize)
+    for axis in ax[:, 0]: axis.set_ylabel(r'M$\rm _{HI}(M_{\odot}/h)$', fontsize=fsize)
     # and finish up.
     plt.tight_layout()
     plt.savefig(fname)

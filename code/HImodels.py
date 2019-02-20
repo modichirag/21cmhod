@@ -12,7 +12,7 @@ class ModelA():
 
         self.alp = (1+2*self.zz)/(2+2*self.zz)
         self.mcut = 1e9*( 1.8 + 15*(3*self.aa)**8 )
-        self.normhalo = 3e5*(1+(3.5/self.zz)**6) *10. #add *10 on feb14 to get correct omHI
+        self.normhalo = 3e5*(1+(3.5/self.zz)**6) 
         self.normsat = self.normhalo*(1.75 + 0.25*self.zz)
 
 
@@ -39,8 +39,16 @@ class ModelA():
         
 
     def getinsat(self, mHIsat, satid, totalsize, localsize, comm):
+       
+        #print(comm.rank, np.all(np.diff(satid) >=0))
+        #diff = np.diff(satid)
+        #if comm.rank == 260: 
+        #    print(satid[:-1][diff <0], satid[1:][diff < 0])
+
         da = DistributedArray(satid, comm)
+        
         mHI = da.bincount(mHIsat, shared_edges=False)
+        
         zerosize = totalsize - mHI.cshape[0]
         zeros = DistributedArray.cempty(cshape=(zerosize, ), dtype=mHI.local.dtype, comm=comm)
         zeros.local[...] = 0
@@ -151,7 +159,8 @@ class ModelB():
 
 
     def moster(self, Mhalo, scatter=None):
-        """                                                                                                                                        moster(Minf,z): 
+        """ 
+        moster(Minf,z): 
         Returns the stellar mass (M*/h) given Minf and z from Table 1 and                                                                  
         Eq. (2,11-14) of Moster++13 [1205.5807]. 
         This version now works in terms of Msun/h units,
@@ -199,6 +208,130 @@ class ModelB():
                                  position=position,weight=weight)
 
         return mesh
+
+
+
+##
+##
+##
+##    
+##class ModelB():
+##    '''Assign differently in satellites here
+##    '''
+##    def __init__(self, aa, h=0.6776):
+##
+##        self.aa = aa
+##        self.zz = 1/aa-1
+##        self.h = h
+##        self.mcut = 1e9*( 1.8 + 15*(3*self.aa)**8 )
+##        self.normhalo = 1
+##        self.slope, self.intercept = np.polyfit([8.1, 11], [0.2, -1.], deg=1)
+##
+##
+##    def assignHI(self, halocat, cencat, satcat):
+##        mHIsat = self.assignsat(satcat['Mass'].compute(), satcat['HaloMass'].compute())
+##        mHIcen = self.assigncen(cencat['Mass'].compute())
+##        
+##        mHIhalo = self.assignhalo(mHIcen, mHIsat, satcat['GlobalID'].compute(), 
+##                                halocat.csize, halocat.comm)
+##        return mHIhalo, mHIcen, mHIsat
+##
+##    def assignhalo(self, mHIcen, mHIsat, satid, hsize, comm):
+##        #Assumes every halo has a central...which it does...usually
+##        mHItotal = self.getinsat(mHIsat, satid, hsize, mHIcen.size, comm)
+##        return mHIcen + mHItotal.local
+##
+##
+##    def getinsat(self, mHIsat, satid, totalsize, localsize, comm):
+##        da = DistributedArray(satid, comm)
+##        mHI = da.bincount(mHIsat, shared_edges=False)
+##        zerosize = totalsize - mHI.cshape[0]
+##        zeros = DistributedArray.cempty(cshape=(zerosize, ), dtype=mHI.local.dtype, comm=comm)
+##        zeros.local[...] = 0
+##        mHItotal = DistributedArray.concat(mHI, zeros, localsize=localsize)
+##        return mHItotal
+##
+##    def assignsat(self, msat, mhalo, mmax=15.5, scatter=None):
+##        mstellar = self.moster(msat, scatter=scatter)/self.h
+##
+##        xx = np.log10(mstellar)
+##        yy = self.slope* xx + self.intercept
+##        mh1 = mstellar * 10**yy
+##        mh1 =  mh1*self.h * np.exp(-self.mcut/msat)
+##        
+##        #
+##        mcutoff = np.log10(mstellar) + 3
+##        mscale = (1/(mmax-mcutoff))
+##        poor = mscale*(np.log10(mhalo)-mcutoff)
+##        poor = np.array(list(map(lambda i: max(0.01, i), poor)))
+##        poor = np.array(list(map(lambda i: min(1, i), poor))).flatten()
+##        mask = np.random.uniform(size=poor.size) > poor
+##        mask = mask *bool(0)
+##        #print(mask.sum()/mask.size)
+##        mh1 = mh1 * mask
+##        return mh1
+##
+##
+##    def assigncen(self, mcen, scatter=None):
+##        mstellar = self.moster(mcen, scatter=scatter)/self.h
+##        xx = np.log10(mstellar)
+##        yy = self.slope* xx + self.intercept
+##        mh1 = mstellar * 10**yy
+##        return mh1*self.h * np.exp(-self.mcut/mcen)
+##
+##
+##    def moster(self, Mhalo, scatter=None):
+##        """ 
+##        moster(Minf,z): 
+##        Returns the stellar mass (M*/h) given Minf and z from Table 1 and                                                                  
+##        Eq. (2,11-14) of Moster++13 [1205.5807]. 
+##        This version now works in terms of Msun/h units,
+##        convert to Msun units in the function
+##        To get "true" stellar mass, add 0.15 dex of lognormal scatter.                    
+##        To get "observed" stellar mass, add between 0.1-0.45 dex extra scatter.         
+##
+##        """
+##        z = self.zz
+##        Minf = Mhalo/self.h
+##        zzp1  = z/(1+z)
+##        M1    = 10.0**(11.590+1.195*zzp1)
+##        mM    = 0.0351 - 0.0247*zzp1
+##        beta  = 1.376  - 0.826*zzp1
+##        gamma = 0.608  + 0.329*zzp1
+##        Mstar = 2*mM/( (Minf/M1)**(-beta) + (Minf/M1)**gamma )
+##        Mstar*= Minf
+##        if scatter is not None: 
+##            Mstar = 10**(np.log10(Mstar) + np.random.normal(0, scatter, Mstar.size))
+##        return Mstar*self.h
+##        #                                                                                                                                          
+##
+##    def assignrsd(self, rsdfac, halocat, cencat, satcat, los=[0,0,1]):
+##        hrsdpos = halocat['Position']+halocat['Velocity']*los * rsdfac
+##        crsdpos = cencat['Position']+cencat['Velocity']*los * rsdfac
+##        srsdpos = satcat['Position']+satcat['Velocity']*los * rsdfac
+##        return hrsdpos, crsdpos, srsdpos
+##
+##
+##    def createmesh(self, bs, nc, halocat, cencat, satcat, mode='galaxies', position='RSDpos', weight='HImass'):
+##        '''use this to create mesh of HI
+##        '''
+##        comm = halocat.comm
+##        if mode == 'halos': catalogs = [halocat]
+##        elif mode == 'galaxies': catalogs = [cencat, satcat]
+##        elif mode == 'all': catalogs = [halocat, cencat, satcat]
+##        else: print('Mode not recognized')
+##        
+##        rankweight       = sum([cat[weight].sum().compute() for cat in catalogs])
+##        totweight        = comm.allreduce(rankweight)
+##
+##        for cat in catalogs: cat[weight] /= totweight/float(nc)**3            
+##        allcat = MultipleSpeciesCatalog(['%d'%i for i in range(len(catalogs))], *catalogs)
+##        mesh = allcat.to_mesh(BoxSize=bs,Nmesh=[nc,nc,nc],\
+##                                 position=position,weight=weight)
+##
+##        return mesh
+##
+
 
 
 

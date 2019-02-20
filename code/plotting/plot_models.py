@@ -3,16 +3,22 @@
 # Plots the power spectra and Fourier-space biases for the HI.
 #
 import numpy as np
+import sys, os
 import matplotlib.pyplot as plt
 from scipy.interpolate import InterpolatedUnivariateSpline as ius
 #
+#
+from matplotlib import rcParams
+rcParams['font.family'] = 'serif'
 
-
-
+#
+#
+bs = 1024
 suff = 'm1_00p3mh-alpha-0p8-subvol'
+if bs == 1024: suff = suff + '-big'
 figpath = '../../figs/%s/'%(suff)
 try: os.makedirs(figpath)
-except: pass
+except Exception as e: print(e)
 
 
 
@@ -64,6 +70,61 @@ def make_omHI_plot(fname, fsize=12):
 
 
 
+
+
+def make_omHI_plot_2(fname, fsize=12):
+    """Does the work of making the distribution figure."""
+    zlist = [2.0,2.5,3.0,3.5,4.0,4.5,5.0,5.5,6.0]
+    clist = ['b','c','g','m','r']
+    # Now make the figure.
+
+    fig,axis = plt.subplots(figsize=(6, 5))
+
+   # Read in the data and convert to "normal" OmegaHI convention.
+    dd = np.loadtxt("../../data/omega_HI_obs.txt")
+    #Ez = np.sqrt( 0.3*(1+dd[:,0])**3+0.7 )
+    #axis.errorbar(dd[:,0],1e-3*dd[:,1]/Ez**2,yerr=1e-3*dd[:,2]/Ez**2,\
+    #            fmt='s',mfc='None')
+    axis.errorbar(dd[:,0],1e-3*dd[:,1],yerr=1e-3*dd[:,2],fmt='s',mfc='None')
+    # Plot the fit line.
+    zz = np.linspace(0,7,100)
+    Ez = np.sqrt( 0.3*(1+zz)**3+0.7 )
+    axis.plot(zz,4e-4*(1+zz)**0.6,'k-')
+
+    for im, model in enumerate(['ModelA', 'ModelB']):
+        dpath = '../../data/outputs/%s/%s/'%(suff, model)
+        omz = []
+        for iz, zz in enumerate(zlist):
+            # Read the data from file.
+            aa  = 1.0/(1.0+zz)
+            omHI = np.loadtxt(dpath + "HI_dist_{:06.4f}.txt".format(aa)).T
+            omHI = (omHI[1]*omHI[2]).sum()/bs**3/27.754e10
+            omHI *= (1+zz)**3
+            if iz == 0: axis.plot(zz, omHI, 'C%do'%im, label=model)
+            else: axis.plot(zz, omHI, 'C%do'%im)
+            omz.append(omHI)
+
+        ss = ius(zlist, omz)
+        axis.plot(np.linspace(2,6,100),ss(np.linspace(2,6,100)),'C%d'%im)
+
+    axis.set_yscale('log')
+    axis.legend(fontsize=fsize)
+    for tick in axis.xaxis.get_major_ticks():
+        tick.label.set_fontsize(fsize)
+    for tick in axis.yaxis.get_major_ticks():
+        tick.label.set_fontsize(fsize)
+            
+    # Put on some more labels.
+    axis.set_xlabel(r'$z$')
+    axis.set_ylabel(r'$\Omega_{HI}$')
+    # and finish up.
+    plt.tight_layout()
+    plt.savefig(fname)
+    #
+
+
+
+
 def make_bias_plot(fname, fsize=12):
     """Does the work of making the distribution figure."""
     zlist = [2.0,2.5,3.0,3.5,4.0,4.5,5.0,5.5,6.0]
@@ -73,7 +134,7 @@ def make_bias_plot(fname, fsize=12):
     fig,axis = plt.subplots(figsize=(6, 5))
 
     bDLA = np.loadtxt("../../data/boss_bDLA.txt")
-    axis.errorbar(bDLA[:,0],bDLA[:,1],yerr=bDLA[:,2],fmt='s', label='BOSS')
+    axis.errorbar(bDLA[:,0],bDLA[:,1],yerr=bDLA[:,2],fmt='s', label='BOSS', color='m')
     axis.fill_between([1.5,3.5],[1.99-0.11,1.99-0.11],\
                                  [1.99+0.11,1.99+0.11],\
                        color='lightgrey',alpha=0.5)
@@ -189,10 +250,9 @@ def make_pkll_ratio_plot(fname, fsize=11):
 
     # Now make the figure.
     zlist = [2.0,2.5,3.0,4.0,5.0,6.0]
-
+    fig,ax = plt.subplots(2, 3,figsize=(9,6),sharex=True,sharey=True)
 
     # Now make the figure.
-    fig,ax = plt.subplots(2, 3,figsize=(12,8),sharex=True,sharey=True)
     for im, model in enumerate(['ModelA',  'ModelB', 'ModelC']):
 
         dpath = '../../data/outputs/%s/%s/'%(suff, model)        
@@ -202,7 +262,7 @@ def make_pkll_ratio_plot(fname, fsize=11):
             zz = zlist[iz]
             aa = 1.0/(1.0+zz)
             pkd = np.loadtxt(dpath + "HI_pks_ll_{:06.4f}.txt".format(aa))[1:,:]
-            pkd1 = np.loadtxt(dpath + "HI_pks_1d_{:06.4f}.txt".format(aa))[1:,:]
+            #pkd1 = np.loadtxt(dpath + "HI_pks_1d_{:06.4f}.txt".format(aa))[1:,:]
             pkb = np.loadtxt(dpath + "HI_bias_{:06.4f}.txt".format(aa))[1:,:]
             pkr = pkb[:, 2]**2 * pkb[:, 3]
             ipkr = ius(pkb[:, 0], pkr)
@@ -210,20 +270,20 @@ def make_pkll_ratio_plot(fname, fsize=11):
 
             axis = ax.flatten()[iz]
             axis.plot(pkd[:,0],pkd[:,1]/ipkr(pkd[:,0]),'-',\
-                                       color='C%d'%im,alpha=0.95,label=model)
-            axis.plot(pkd1[:,0],pkd1[:,1]/ipkr(pkd1[:,0]),'--',\
-                                       color='C%d'%im,alpha=0.5,label=model)
+                                       color='C%d'%im,alpha=0.95,label=model, lw=2)
+            #axis.plot(pkd1[:,0],pkd1[:,1]/ipkr(pkd1[:,0]),'--',\
+            #                           color='C%d'%im,alpha=0.5,label=model)
                 # and the linear theory counterparts.
             
         
-            axis.set_xlim(0.02,2.0)
-            axis.set_ylim(0.7, 1.5)
+            axis.set_xlim(0.02,1.3)
+            axis.set_ylim(1.0, 1.5)
             axis.set_xscale('log')
             #axis.set_yscale('log')
             text = "$z={:.1f}$".format(zz)
-            axis.text(0.025,110,text,ha='left',va='top')
+            axis.text(0.025,1.4,text,ha='left',va='top')
             #
-            if iz==0: axis.legend(framealpha=0.5, ncol=2, loc='lower right')
+            if iz==0: axis.legend(framealpha=0.5, ncol=1, loc='lower left')
                     
     # Put on some more labels.
     for axis in ax[-1, :]: axis.set_xlabel(r'$k\quad [h\,{\rm Mpc}^{-1}]$')
@@ -243,7 +303,7 @@ def make_pkll_ratio_plot(fname, fsize=11):
 
 if __name__=="__main__":
     make_pkll_ratio_plot(figpath + 'monopoleratio.pdf')
-#    make_bias_plot(figpath + 'bias.pdf')
-#    make_omHI_plot(figpath + 'omHI.pdf')
-#    make_pks_plot(figpath + 'pkmu.pdf')
+    make_bias_plot(figpath + 'bias.pdf')
+    make_omHI_plot_2(figpath + 'omHI.pdf')
+    make_pks_plot(figpath + 'pkmu.pdf')
 #    #

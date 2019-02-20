@@ -21,8 +21,8 @@ alist    = [0.1429,0.1538,0.1667,0.1818,0.2000,0.2222,0.2500,0.2857,0.3333]
 
 
 #Parameters, box size, number of mesh cells, simulation, ...
-bs, nc, ncsim, sim, prefix = 256, 512, 2560, 'highres/%d-9100-fixed'%2560, 'highres'
-#bs,nc,ncsim, sim, prefic = 1024, 1024, 10240, 'highres/%d-9100-fixed'%ncsim, 'highres'
+#bs, nc, ncsim, sim, prefix = 256, 512, 2560, 'highres/%d-9100-fixed'%2560, 'highres'
+bs,nc,ncsim, sim, prefic = 1024, 1024, 10240, 'highres/%d-9100-fixed'%10240, 'highres'
 
 
 # It's useful to have my rank for printing...
@@ -67,8 +67,9 @@ def distribution(aa, halocat, cencat, satcat, outfolder, mbins=None):
     if rank==0:
         tosave = np.zeros((len(hsize), 5))
         tosave[:, 1] = hsize
-        tosave[:, 0] = htotal / (tosave[:, 1] + 1)
-        tosave[:, 2:] = h1total/ (tosave[:, 1] + 1)
+        tosave[:, 0] = htotal / (tosave[:, 1])
+        tosave[:, 2:] = h1total/ (tosave[:, 1].reshape(-1, 1))
+        tosave[np.isnan(tosave)] = 0
         header = 'Halo Mass, Number Halos, HI halos, HI centrals, HI satellites'
         np.savetxt(outfolder + "HI_dist_{:6.4f}.txt".format(aa), tosave, fmt='%0.6e', header=header)
     
@@ -77,7 +78,11 @@ def distribution(aa, halocat, cencat, satcat, outfolder, mbins=None):
 if __name__=="__main__":
     if rank==0: print('Starting')
     suff='-m1_00p3mh-alpha-0p8-subvol'
-    outfolder = ofolder + suff[1:] + "/%s/"%modelname
+    outfolder = ofolder + suff[1:]
+    if bs == 1024: outfolder = outfolder + "-big"
+    outfolder += "/%s/"%modelname
+    if rank == 0: print(outfolder)
+    #outfolder = ofolder + suff[1:] + "/%s/"%modelname
     try: 
         os.makedirs(outfolder)
     except : pass
@@ -97,5 +102,6 @@ if __name__=="__main__":
                                             cencat.csize, cencat['Mass'].size, cencat.comm).local
         
 
-        distribution(aa, halocat, cencat, satcat, outfolder)
+        mbins = 10**np.arange(9, 15.1, 0.2)
+        distribution(aa, halocat, cencat, satcat, outfolder, mbins=mbins)
 
