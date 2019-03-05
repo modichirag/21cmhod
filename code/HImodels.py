@@ -11,8 +11,11 @@ class ModelA():
         self.zz = 1/aa-1
 
         self.alp = (1+2*self.zz)/(2+2*self.zz)
-        self.mcut = 1e9*( 1.8 + 15*(3*self.aa)**8 )
-        self.normhalo = 3e5*(1+(3.5/self.zz)**6) 
+        #self.mcut = 1e9*( 1.8 + 15*(3*self.aa)**8 )
+        self.mcut = 3e9*( 1 + 10*(3*self.aa)**8)
+        #self.normhalo = 3e5*(1+(3.5/self.zz)**6) 
+        #self.normhalo = 3e7 *(4+(3.5/self.zz)**6)
+        self.normhalo = 9e5*(1+(3.5/self.zz)**6) 
         self.normsat = self.normhalo*(1.75 + 0.25*self.zz)
 
 
@@ -114,7 +117,8 @@ class ModelB():
         self.aa = aa
         self.zz = 1/aa-1
         self.h = h
-        self.mcut = 1e9*( 1.8 + 15*(3*self.aa)**8 )
+        #self.mcut = 1e9*( 1.8 + 15*(3*self.aa)**8 )
+        self.mcut = 3e9*( 1 + 10*(3*self.aa)**8) 
         self.normhalo = 1
         self.slope, self.intercept = np.polyfit([8.1, 11], [0.2, -1.], deg=1)
 
@@ -142,20 +146,36 @@ class ModelB():
         mHItotal = DistributedArray.concat(mHI, zeros, localsize=localsize)
         return mHItotal
 
+##    def _assign(self, mstellar):
+##        xx = np.log10(mstellar)
+##        yy = self.slope* xx + self.intercept
+##        mh1 = mstellar * 10**yy
+##        return mh1
+##        
+
+    def _assign(self, mstellar):
+       xx = np.log10(mstellar)
+       mm = 9e8
+       aa = 0.0
+       bb = 0.5
+       yy = np.log10(((10**xx/mm)**aa +(10**xx/mm)**bb)**-1) 
+       mh1 = mstellar * 10**yy
+       return mh1
+
+        
+
     def assignsat(self, msat, scatter=None):
         mstellar = self.moster(msat, scatter=scatter)/self.h
-        xx = np.log10(mstellar)
-        yy = self.slope* xx + self.intercept
-        mh1 = mstellar * 10**yy
-        return mh1*self.h * np.exp(-self.mcut/msat)
+        mh1 = self._assign(mstellar)
+        mh1 = mh1*self.h * np.exp(-self.mcut/msat)
+        return mh1
 
 
     def assigncen(self, mcen, scatter=None):
         mstellar = self.moster(mcen, scatter=scatter)/self.h
-        xx = np.log10(mstellar)
-        yy = self.slope* xx + self.intercept
-        mh1 = mstellar * 10**yy
-        return mh1*self.h * np.exp(-self.mcut/mcen)
+        mh1 = self._assign(mstellar)
+        mh1 = mh1*self.h * np.exp(-self.mcut/mcen)
+        return mh1
 
 
     def moster(self, Mhalo, scatter=None):
