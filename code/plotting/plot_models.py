@@ -85,7 +85,7 @@ def make_omHI_plot_2(fname, fsize=12):
     #Ez = np.sqrt( 0.3*(1+dd[:,0])**3+0.7 )
     #axis.errorbar(dd[:,0],1e-3*dd[:,1]/Ez**2,yerr=1e-3*dd[:,2]/Ez**2,\
     #            fmt='s',mfc='None')
-    axis.errorbar(dd[:,0],1e-3*dd[:,1],yerr=1e-3*dd[:,2],fmt='s',mfc='None')
+    axis.errorbar(dd[:,0],1e-3*dd[:,1],yerr=1e-3*dd[:,2],fmt='s',mfc='None', color='g')
     # Plot the fit line.
     zz = np.linspace(0,7,100)
     Ez = np.sqrt( 0.3*(1+zz)**3+0.7 )

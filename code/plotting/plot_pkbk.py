@@ -3,7 +3,7 @@
 # Plots the power spectra and Fourier-space biases for the HI.
 #
 import numpy as np
-import os
+import os, sys
 import matplotlib.pyplot as plt
 from matplotlib import rcParams
 rcParams['font.family'] = 'serif'
@@ -14,11 +14,14 @@ import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument('-m', '--model', help='model name to use')
 args = parser.parse_args()
+if args.model == None:
+    print('Specify a model name')
+    sys.exit()
 print(args, args.model)
 
 
 model = args.model #'ModelD'
-suff = 'm1_00p3mh-alpha-0p8-subvol-big'
+suff = 'm1_00p3mh-alpha-0p8-subvol'
 dpath = '../../data/outputs/%s/%s/'%(suff, model)
 figpath = '../../figs/%s/'%(suff)
 try: os.makedirs(figpath)

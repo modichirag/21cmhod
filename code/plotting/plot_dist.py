@@ -13,7 +13,7 @@ rcParams['font.family'] = 'serif'
 
 
 
-suff = 'm1_00p3mh-alpha-0p8-subvol-big'
+suff = 'm1_00p3mh-alpha-0p8-subvol'
 figpath = '../../figs/%s/'%(suff)
 try: os.makedirs(figpath)
 except: pass
@@ -39,7 +39,7 @@ def make_satdist_plot(fname, fsize=12):
             # Read the data from file.
             axis = ax.flatten()[iz]
             aa  = 1.0/(1.0+zz)
-            dist = np.loadtxt(dpath + "HI_dist_{:06.4f}.txt".format(aa))[1:,:]
+            dist = np.loadtxt(dpath + "HI_dist_{:06.4f}.txt".format(aa))[:,:]
             dist = dist[dist[:,1] !=0]
             xx = dist[:, 0]
             satfrac = dist[:, 4]/(dist[:, 2] + 1e-10)
@@ -83,7 +83,7 @@ def make_HIfrac_dh_plot(fname, fsize=12):
             # Read the data from file.
             axis = ax.flatten()[iz]
             aa  = 1.0/(1.0+zz)
-            dist = np.loadtxt(dpath + "HI_dist_{:06.4f}.txt".format(aa))[1:,:]
+            dist = np.loadtxt(dpath + "HI_dist_{:06.4f}.txt".format(aa))[:,:]
             dist = dist[dist[:,1] !=0]
             xx = dist[:, 0]
             nn = dist[:, 1]
@@ -130,7 +130,7 @@ def make_hmf_plot(fname, fsize=13):
             # Read the data from file.
             axis = ax.flatten()[iz]
             aa  = 1.0/(1.0+zz)
-            dist = np.loadtxt(dpath + "HI_dist_{:06.4f}.txt".format(aa))[1:,:]
+            dist = np.loadtxt(dpath + "HI_dist_{:06.4f}.txt".format(aa))[:,:]
             dist = dist[dist[:,1] !=0]
             nn = dist[:, 1]
             xx = dist[:, 0]
@@ -173,7 +173,8 @@ def make_H1mh_plot(fname, fsize=13):
             # Read the data from file.
             axis = ax.flatten()[iz]
             aa  = 1.0/(1.0+zz)
-            dist = np.loadtxt(dpath + "HI_dist_{:06.4f}.txt".format(aa))[1:-1,:]
+            #dist = np.loadtxt(dpath + "HI_dist_{:06.4f}.txt".format(aa))[1:-1,:]
+            dist = np.loadtxt(dpath + "HI_dist_{:06.4f}.txt".format(aa))[:,:]
             dist = dist[dist[:,1] !=0]
             xx = dist[:, 0]
             yy = dist[:, 2]
