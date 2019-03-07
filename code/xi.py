@@ -25,7 +25,7 @@ scratchcm = '/global/cscratch1/sd/chmodi/m3127/H1mass/'
 project  = '/project/projectdirs/m3127/H1mass/'
 cosmodef = {'omegam':0.309167, 'h':0.677, 'omegab':0.048}
 alist    = [0.1429,0.1538,0.1667,0.1818,0.2000,0.2222,0.2500,0.2857,0.3333]
-#alist = alist[-1:]
+alist = alist[-2:]
 
 #Parameters, box size, number of mesh cells, simulation, ...
 bs, nc, ncsim, sim, prefix = 256, 512, 2560, 'highres/%d-9100-fixed'%2560, 'highres'
@@ -234,7 +234,8 @@ def measurexi(N, edges):
 
 if __name__=="__main__":
 
-    edges = np.logspace(np.log10(0.5), np.log10(20), 10)
+    #edges = np.logspace(np.log10(0.5), np.log10(20), 10)
+    edges = np.logspace(np.log10(1), np.log10(30), 30)
     # use 1000 particles up to (20 Mpc/h) ** 3 volume;
     # looks good enough?
     #measurexigal(N=10000, edges=edges)

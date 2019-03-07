@@ -1,5 +1,5 @@
 import numpy as np
-
+from scipy.integrate import simps
 
 def mtotsatHImodelA(mh, hodparams, h1hsatparams, mmax=None, mmin=None, mcutp=1.0):
     f, alpha = hodparams
@@ -61,7 +61,7 @@ def nsattot(mh, f, alpha, mmin, mmax=None):
     
     toret = np.zeros_like(mh)
     for i in range(toret.size):
-        mm = np.logspace(np.log10(mmin[i]), np.log10(mmax[i]), 100000)
+        mm = np.logspace(np.log10(mmin[i]), np.log10(mmax[i]), 1000)
         y = nmsat(mm, mh[i], f, alpha)
         toret[i] = simps(y, mm)
     toret[np.isnan(toret)] = 0
@@ -77,6 +77,11 @@ def HIm(mhalo, mcut, alphah1, A, mcutp=1.0):
 
 
 def massweightedsum(mh, mmin, numf, massf):
+    '''
+    numf gives number of objects of mass 'm' in halo of mass 'mh'
+    massf gives mass weight of object of object of mass 'm'
+    integration is done from mmin to mh/10
+    '''
     if type(mh) is not np.ndarray: mh = np.array(mh).reshape(-1)
     if type(mmin) is not np.ndarray:  mmin = mmin + 0*mh
     mmax = mh/10.
