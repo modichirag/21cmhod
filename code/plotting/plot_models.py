@@ -11,116 +11,25 @@ from scipy.interpolate import InterpolatedUnivariateSpline as ius
 from matplotlib import rcParams
 rcParams['font.family'] = 'serif'
 
+
 #
-#
-bs = 1024
+import argparse
+parser = argparse.ArgumentParser()
+parser.add_argument('-s', '--size', help='which box size simulation', default='small')
+args = parser.parse_args()
+boxsize = args.size
+
 suff = 'm1_00p3mh-alpha-0p8-subvol'
-if bs == 1024: suff = suff + '-big'
+if boxsize == 'big':
+    suff = suff + '-big'
+    bs = 1024
+else: bs = 256
+#
 figpath = '../../figs/%s/'%(suff)
 try: os.makedirs(figpath)
 except Exception as e: print(e)
 
-
-
-def make_omHI_plot(fname, fsize=12):
-    """Does the work of making the distribution figure."""
-    zlist = [2.0,2.5,3.0,3.5,4.0,4.5,5.0,5.5,6.0]
-    clist = ['b','c','g','m','r']
-    # Now make the figure.
-
-    fig,axis = plt.subplots(figsize=(6, 5))
-
-   # Read in the data and convert to "normal" OmegaHI convention.
-    dd = np.loadtxt("../../data/omega_HI_obs.txt")
-    Ez = np.sqrt( 0.3*(1+dd[:,0])**3+0.7 )
-    axis.errorbar(dd[:,0],1e-3*dd[:,1]/Ez**2,yerr=1e-3*dd[:,2]/Ez**2,\
-                fmt='s',mfc='None')
-    # Plot the fit line.
-    zz = np.linspace(0,7,100)
-    Ez = np.sqrt( 0.3*(1+zz)**3+0.7 )
-    axis.plot(zz,4e-4*(1+zz)**0.6/Ez**2,'k-')
-
-    for im, model in enumerate(['ModelA', 'ModelB']):
-        dpath = '../../data/outputs/%s/%s/'%(suff, model)
-        print(model)
-
-        omHI = np.loadtxt(dpath + "OmHI.txt")
-        #omHI[:, 1] /= 10
-        axis.plot(omHI[:, 0], omHI[:, 1], 'C%do'%im, label=model)
-
-        ss = ius(omHI[::-1, 0], omHI[::-1, 1])
-        axis.plot(np.linspace(2,6,100),ss(np.linspace(2,6,100)),'C%d'%im)
-
-    axis.set_yscale('log')
-    axis.legend(fontsize=fsize)
-    for tick in axis.xaxis.get_major_ticks():
-        tick.label.set_fontsize(fsize)
-    for tick in axis.yaxis.get_major_ticks():
-        tick.label.set_fontsize(fsize)
-            
-    # Put on some more labels.
-    axis.set_xlabel(r'$z$')
-    axis.set_ylabel(r'$\Omega_{HI}$')
-    # and finish up.
-    plt.tight_layout()
-    plt.savefig(fname)
-    #
-
-
-
-
-
-
-
-def make_omHI_plot_2(fname, fsize=12):
-    """Does the work of making the distribution figure."""
-    zlist = [2.0,2.5,3.0,3.5,4.0,4.5,5.0,5.5,6.0]
-    clist = ['b','c','g','m','r']
-    # Now make the figure.
-
-    fig,axis = plt.subplots(figsize=(6, 5))
-
-   # Read in the data and convert to "normal" OmegaHI convention.
-    dd = np.loadtxt("../../data/omega_HI_obs.txt")
-    #Ez = np.sqrt( 0.3*(1+dd[:,0])**3+0.7 )
-    #axis.errorbar(dd[:,0],1e-3*dd[:,1]/Ez**2,yerr=1e-3*dd[:,2]/Ez**2,\
-    #            fmt='s',mfc='None')
-    axis.errorbar(dd[:,0],1e-3*dd[:,1],yerr=1e-3*dd[:,2],fmt='s',mfc='None', color='g')
-    # Plot the fit line.
-    zz = np.linspace(0,7,100)
-    Ez = np.sqrt( 0.3*(1+zz)**3+0.7 )
-    axis.plot(zz,4e-4*(1+zz)**0.6,'k-')
-
-    for im, model in enumerate(['ModelA', 'ModelB']):
-        dpath = '../../data/outputs/%s/%s/'%(suff, model)
-        omz = []
-        for iz, zz in enumerate(zlist):
-            # Read the data from file.
-            aa  = 1.0/(1.0+zz)
-            omHI = np.loadtxt(dpath + "HI_dist_{:06.4f}.txt".format(aa)).T
-            omHI = (omHI[1]*omHI[2]).sum()/bs**3/27.754e10
-            omHI *= (1+zz)**3
-            if iz == 0: axis.plot(zz, omHI, 'C%do'%im, label=model)
-            else: axis.plot(zz, omHI, 'C%do'%im)
-            omz.append(omHI)
-
-        ss = ius(zlist, omz)
-        axis.plot(np.linspace(2,6,100),ss(np.linspace(2,6,100)),'C%d'%im)
-
-    axis.set_yscale('log')
-    axis.legend(fontsize=fsize)
-    for tick in axis.xaxis.get_major_ticks():
-        tick.label.set_fontsize(fsize)
-    for tick in axis.yaxis.get_major_ticks():
-        tick.label.set_fontsize(fsize)
-            
-    # Put on some more labels.
-    axis.set_xlabel(r'$z$')
-    axis.set_ylabel(r'$\Omega_{HI}$')
-    # and finish up.
-    plt.tight_layout()
-    plt.savefig(fname)
-    #
+models  = ['ModelA', 'ModelB', 'ModelC']
 
 
 
@@ -139,7 +48,8 @@ def make_bias_plot(fname, fsize=12):
                                  [1.99+0.11,1.99+0.11],\
                        color='lightgrey',alpha=0.5)
 
-    for im, model in enumerate(['ModelA', 'ModelB']):
+    #for im, model in enumerate(['ModelA', 'ModelB']):
+    for im, model in enumerate(models):
         dpath = '../../data/outputs/%s/%s/'%(suff, model)
         print(model)
 
@@ -190,7 +100,8 @@ def make_pks_plot(fname, fsize=11):
 
     # Now make the figure.
     fig,ax = plt.subplots(3,4,figsize=(12,8),sharex=True,sharey=True)
-    for im, model in enumerate(['ModelA',  'ModelB', 'ModelC']):
+    #for im, model in enumerate(['ModelA',  'ModelB', 'ModelC']):
+    for im, model in enumerate(models):
 
         dpath = '../../data/outputs/%s/%s/'%(suff, model)        
         for ix in range(ax.shape[0]):
@@ -253,7 +164,8 @@ def make_pkll_ratio_plot(fname, fsize=11):
     fig,ax = plt.subplots(2, 3,figsize=(9,6),sharex=True,sharey=True)
 
     # Now make the figure.
-    for im, model in enumerate(['ModelA',  'ModelB', 'ModelC']):
+    #for im, model in enumerate(['ModelA',  'ModelB', 'ModelC']):
+    for im, model in enumerate(models):
 
         dpath = '../../data/outputs/%s/%s/'%(suff, model)        
 
@@ -304,6 +216,5 @@ def make_pkll_ratio_plot(fname, fsize=11):
 if __name__=="__main__":
     make_pkll_ratio_plot(figpath + 'monopoleratio.pdf')
     make_bias_plot(figpath + 'bias.pdf')
-    make_omHI_plot_2(figpath + 'omHI.pdf')
     make_pks_plot(figpath + 'pkmu.pdf')
 #    #

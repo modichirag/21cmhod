@@ -13,6 +13,7 @@ rcParams['font.family'] = 'serif'
 import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument('-m', '--model', help='model name to use')
+parser.add_argument('-s', '--size', help='which box size simulation', default='small')
 args = parser.parse_args()
 if args.model == None:
     print('Specify a model name')
@@ -21,7 +22,11 @@ print(args, args.model)
 
 
 model = args.model #'ModelD'
+boxsize = args.size
+
 suff = 'm1_00p3mh-alpha-0p8-subvol'
+if boxsize == 'big':
+    suff = suff + '-big'
 dpath = '../../data/outputs/%s/%s/'%(suff, model)
 figpath = '../../figs/%s/'%(suff)
 try: os.makedirs(figpath)
