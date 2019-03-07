@@ -153,28 +153,38 @@ class ModelB():
 ##        return mh1
 ##        
 
-    def _assign(self, mstellar):
-       xx = np.log10(mstellar)
-       mm = 9e8
-       aa = 0.0
-       bb = 0.5
-       yy = np.log10(((10**xx/mm)**aa +(10**xx/mm)**bb)**-1) 
-       mh1 = mstellar * 10**yy
-       return mh1
+##    def _assign(self, mstellar):
+##       xx = np.log10(mstellar)
+##       mm = 9e8
+##       aa = 0.0
+##       bb = 0.5
+##       yy = np.log10(((10**xx/mm)**aa +(10**xx/mm)**bb)**-1) 
+##       mh1 = mstellar * 10**yy
+##       return mh1
 
+    def _assign(self, mstellar):
+        '''Takes in M_stellar and gives M_HI in M_solar
+        '''
+        mm = 3e8 #5e7
+        f = 0.2 #0.35
+        alpha = 0.4 #0.35
+        mfrac = f*(mm/(mstellar + mm))**alpha
+        mh1 = mstellar * mfrac
+        return mh1
+        
         
 
     def assignsat(self, msat, scatter=None):
         mstellar = self.moster(msat, scatter=scatter)/self.h
         mh1 = self._assign(mstellar)
-        mh1 = mh1*self.h * np.exp(-self.mcut/msat)
+        mh1 = mh1*self.h #* np.exp(-self.mcut/msat)
         return mh1
 
 
     def assigncen(self, mcen, scatter=None):
         mstellar = self.moster(mcen, scatter=scatter)/self.h
         mh1 = self._assign(mstellar)
-        mh1 = mh1*self.h * np.exp(-self.mcut/mcen)
+        mh1 = mh1*self.h #* np.exp(-self.mcut/mcen)
         return mh1
 
 
@@ -365,6 +375,9 @@ class ModelC(ModelA):
         super().__init__(aa)
         self.normsat = 0
 
+        self.alp = 1.0
+        self.mcut = 1e9
+        self.normhalo = 2e5*(1+(2/self.zz)**2) 
 
     def assignHI(self, halocat, cencat, satcat):
         mHIhalo = self.assignhalo(halocat['Mass'].compute())
@@ -385,8 +398,6 @@ class ModelC(ModelA):
         '''
         comm = halocat.comm
         if mode == 'halos': catalogs = [halocat]
-        elif mode == 'galaxies': catalogs = [cencat, satcat]
-        elif mode == 'all': catalogs = [halocat, cencat, satcat]
         else: print('Mode not recognized')
         
         rankweight       = sum([cat[weight].sum().compute() for cat in catalogs])

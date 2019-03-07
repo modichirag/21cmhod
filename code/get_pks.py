@@ -9,6 +9,19 @@ import HImodels
 # enable logging, we have some clue what's going on.
 setup_logging('info')
 
+#Get model as parameter
+import argparse
+parser = argparse.ArgumentParser()
+parser.add_argument('-m', '--model', help='model name to use')
+parser.add_argument('-s', '--size', help='for small or big box', default='small')
+args = parser.parse_args()
+if args.model == None:
+    print('Specify a model name')
+    sys.exit()
+#print(args, args.model)
+
+model = args.model #'ModelD'
+boxsize = args.size
 
 #
 #
@@ -18,11 +31,16 @@ scratchcm = '/global/cscratch1/sd/chmodi/m3127/H1mass/'
 project  = '/project/projectdirs/m3127/H1mass/'
 cosmodef = {'omegam':0.309167, 'h':0.677, 'omegab':0.048}
 alist    = [0.1429,0.1538,0.1667,0.1818,0.2000,0.2222,0.2500,0.2857,0.3333]
-
+alist = alist[5:]
 
 #Parameters, box size, number of mesh cells, simulation, ...
-#bs, nc, ncsim, sim, prefix = 256, 512, 2560, 'highres/%d-9100-fixed'%2560, 'highres'
-bs, nc, ncsim, sim, prefix = 1024, 1024, 10240, 'highres/%d-9100-fixed'%10240, 'highres'
+if boxsize == 'small':
+    bs, nc, ncsim, sim, prefix = 256, 512, 2560, 'highres/%d-9100-fixed'%2560, 'highres'
+elif boxsize == 'big':
+    bs, nc, ncsim, sim, prefix = 1024, 1024, 10240, 'highres/%d-9100-fixed'%10240, 'highres'
+else:
+    print('Box size not understood, should be "big" or "small"')
+    sys.exit()
 
 
 # It's useful to have my rank for printing...
@@ -32,10 +50,13 @@ comm = pm.comm
 
 
 #Which model & configuration to use
-HImodel = HImodels.ModelB
-modelname = 'ModelB'
-mode = 'halos'
+modeldict = {'ModelA':HImodels.ModelA, 'ModelB':HImodels.ModelB, 'ModelC':HImodels.ModelC}
+modedict = {'ModelA':'galaxies', 'ModelB':'galaxies', 'ModelC':'halos'} 
+HImodel = modeldict[model] #HImodels.ModelB
+modelname = model #'galaxies'
+mode = modedict[model]
 ofolder = '../data/outputs/'
+
 
 
 
@@ -191,7 +212,7 @@ def calc_bias(aa,h1mesh,suff):
 
 if __name__=="__main__":
     if rank==0: print('Starting')
-    suff='-m1_00p3mh-alpha-0p8-subvol-checkmpsort'
+    suff='-m1_00p3mh-alpha-0p8-subvol'
     outfolder = ofolder + suff[1:]
     if bs == 1024: outfolder = outfolder + "-big"
     outfolder += "/%s/"%modelname

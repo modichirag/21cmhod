@@ -9,6 +9,20 @@ import HImodels
 # enable logging, we have some clue what's going on.
 setup_logging('info')
 
+#Get model as parameter
+import argparse
+parser = argparse.ArgumentParser()
+parser.add_argument('-s', '--size', help='for small or big box', default='small')
+parser.add_argument('-m', '--model', help='model name to use')
+args = parser.parse_args()
+if args.model == None:
+    print('Specify a model name')
+    sys.exit()
+#print(args, args.model)
+
+model = args.model #'ModelD'
+boxsize = args.size
+
 
 #
 #
@@ -21,8 +35,13 @@ alist    = [0.1429,0.1538,0.1667,0.1818,0.2000,0.2222,0.2500,0.2857,0.3333]
 
 
 #Parameters, box size, number of mesh cells, simulation, ...
-#bs, nc, ncsim, sim, prefix = 256, 512, 2560, 'highres/%d-9100-fixed'%2560, 'highres'
-bs,nc,ncsim, sim, prefic = 1024, 1024, 10240, 'highres/%d-9100-fixed'%10240, 'highres'
+if boxsize == 'small':
+    bs, nc, ncsim, sim, prefix = 256, 512, 2560, 'highres/%d-9100-fixed'%2560, 'highres'
+elif boxsize == 'big':
+    bs, nc, ncsim, sim, prefix = 1024, 1024, 10240, 'highres/%d-9100-fixed'%10240, 'highres'
+else:
+    print('Box size not understood, should be "big" or "small"')
+    sys.exit()
 
 
 # It's useful to have my rank for printing...
@@ -32,8 +51,11 @@ comm = pm.comm
 
 
 #Which model & configuration to use
-HImodel = HImodels.ModelA
-modelname = 'ModelA'
+modeldict = {'ModelA':HImodels.ModelA, 'ModelB':HImodels.ModelB, 'ModelC':HImodels.ModelC}
+modedict = {'ModelA':'galaxies', 'ModelB':'galaxies', 'ModelC':'halos'} 
+HImodel = modeldict[model] #HImodels.ModelB
+modelname = model
+mode = modedict[model]
 ofolder = '../data/outputs/'
 
 
