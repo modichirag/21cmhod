@@ -13,9 +13,9 @@ class ModelA():
         self.alp = (1+2*self.zz)/(2+2*self.zz)
         #self.mcut = 1e9*( 1.8 + 15*(3*self.aa)**8 )
         self.mcut = 3e9*( 1 + 10*(3*self.aa)**8)
-        #self.normhalo = 3e5*(1+(3.5/self.zz)**6) 
-        #self.normhalo = 3e7 *(4+(3.5/self.zz)**6)
-        self.normhalo = 9e5*(1+(3.5/self.zz)**6) 
+        ###self.normhalo = 3e5*(1+(3.5/self.zz)**6) 
+        ###self.normhalo = 3e7 *(4+(3.5/self.zz)**6)
+        self.normhalo = 8e5*(1+(3.5/self.zz)**6) 
         self.normsat = self.normhalo*(1.75 + 0.25*self.zz)
 
 
@@ -166,7 +166,7 @@ class ModelB():
         '''Takes in M_stellar and gives M_HI in M_solar
         '''
         mm = 3e8 #5e7
-        f = 0.2 #0.35
+        f = 0.18 #0.35
         alpha = 0.4 #0.35
         mfrac = f*(mm/(mstellar + mm))**alpha
         mh1 = mstellar * mfrac
@@ -375,9 +375,13 @@ class ModelC(ModelA):
         super().__init__(aa)
         self.normsat = 0
 
-        self.alp = 1.0
-        self.mcut = 1e9
-        self.normhalo = 2e5*(1+(2/self.zz)**2) 
+        #self.alp = 1.0
+        #self.mcut = 1e9
+        #self.normhalo = 2e5*(1+3/self.zz**2) 
+        #self.normhalo = 1.1e5*(1+4/self.zz) 
+        self.alp = 0.9
+        self.mcut = 1e10
+        self.normhalo = 3.5e6*(1+1/self.zz) 
 
     def assignHI(self, halocat, cencat, satcat):
         mHIhalo = self.assignhalo(halocat['Mass'].compute())

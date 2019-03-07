@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #SBATCH -J 21cmhod
-#SBATCH -N 32
+#SBATCH -N 16
 #SBATCH -p debug
 #SBATCH -t 00:30:00
 #SBATCH -o ./log_slurm/getbias.o%j
@@ -23,10 +23,18 @@ bcast-pip -U --no-deps https://github.com/bccp/nbodykit/archive/master.zip
 
 echo 'Finally starting'
 
+#time srun -n 128 python -u distributeHI.py -m ModelA -s small
+#time srun -n 128 python -u distributeHI.py -m ModelB -s small
+#time srun -n 512 python -u distributeHI.py -m ModelC -s small
+##time srun -n 128 python -u get_pks.py -m ModelA -s small
+##time srun -n 128 python -u get_pks.py -m ModelB -s small
+time srun -n 512 python -u get_pks.py -m ModelC -s small
+##
 #time srun -n 1024 python -u distributeHI.py -m ModelA -s big
 #time srun -n 1024 python -u distributeHI.py -m ModelB -s big
-#time srun -n 1024 python -u distributeHI.py -m ModelC -s big
-time srun -n 1024 python -u get_pks.py -m ModelA -s big
-time srun -n 1024 python -u get_pks.py -m ModelB -s big
-time srun -n 1024 python -u get_pks.py -m ModelC -s big
+#time srun -n 512 python -u distributeHI.py -m ModelC -s big
+time srun -n 512 python -u get_pks.py -m ModelC -s big
 
+time srun -n 512 python -u get_pks.py -m ModelA -s big
+time srun -n 512 python -u get_pks.py -m ModelB -s big
+#
