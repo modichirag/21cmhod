@@ -1,5 +1,5 @@
 import numpy as np
-import re, os
+import re, os, sys
 from pmesh.pm     import ParticleMesh
 from nbodykit.lab import BigFileCatalog, BigFileMesh, MultipleSpeciesCatalog, FFTPower
 from nbodykit     import setup_logging
