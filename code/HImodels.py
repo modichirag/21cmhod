@@ -120,7 +120,7 @@ class ModelB():
         #self.mcut = 1e9*( 1.8 + 15*(3*self.aa)**8 )
         self.mcut = 3e9*( 1 + 10*(3*self.aa)**8) 
         self.normhalo = 1
-        self.slope, self.intercept = np.polyfit([8.1, 11], [0.2, -1.], deg=1)
+        #self.slope, self.intercept = np.polyfit([8.1, 11], [0.2, -1.], deg=1)
 
 
     def assignHI(self, halocat, cencat, satcat):
