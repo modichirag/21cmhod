@@ -7,21 +7,38 @@ import matplotlib.pyplot as plt
 from scipy.interpolate import LSQUnivariateSpline as Spline
 from scipy.signal import savgol_filter
 #
-from matplotlib import rcParams
+from matplotlib import rc, rcParams, font_manager
 rcParams['font.family'] = 'serif'
+fsize = 12
+fontmanage = font_manager.FontProperties(family='serif', style='normal',
+    size=fsize, weight='normal', stretch='normal')
+font = {'family': fontmanage.get_family()[0],
+        'style':  fontmanage.get_style(),
+        'weight': fontmanage.get_weight(),
+        'size': fontmanage.get_size(),
+        }
+print(font)
 #
 import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument('-m', '--model', help='model name to use')
+parser.add_argument('-s', '--size', help='which box size simulation', default='small')
 args = parser.parse_args()
+if args.model == None:
+    print('Specify a model name')
+    sys.exit()
 print(args, args.model)
 
 
 
-bs = 1024
 model = args.model #'ModelD'
+boxsize = args.size
+
 suff = 'm1_00p3mh-alpha-0p8-subvol'
-if bs == 1024: suff = suff + '-big'
+bs = 256
+if boxsize == 'big':
+    suff = suff + '-big'
+    bs = 1024
 dpath = '../../data/outputs/%s/%s/'%(suff, model)
 figpath = '../../figs/%s/'%(suff)
 try: os.makedirs(figpath)
@@ -39,7 +56,7 @@ def make_bao_plot(fname):
     zlist = [2.0,4.0,2.5,5.0,3.0,6.0]
     clist = ['b','c','g','m','r','y']
     # Now make the figure.
-    fig,ax = plt.subplots(1,2,figsize=(6,3.0),sharey=True)
+    fig,ax = plt.subplots(1,2,figsize=(8,4),sharey=True)
     ii,jj  = 0,0
     for zz,col in zip(zlist,clist):
         # Read the data from file.
@@ -68,30 +85,40 @@ def make_bao_plot(fname):
         else:	# Use Savitsky-Golay filter for no-wiggle.
             ps = pkd[:,2]**2 *pkd[:,3]
             ss  = savgol_filter(ps, winsize,polyorder=2)
-            rat = ps/ss
+            rat = ps/ss 
             ss  = savgol_filter(pks, winsize ,polyorder=2)
-            rats = pks/ss
+            rats = pks/ss 
             ss  = savgol_filter(lin,winsize,polyorder=2)
-            ratlin = lin/ss
+            ratlin = lin/ss 
 
         ax[ii].plot(pkd[:,0],rat+0.2*(jj//2),col+'-',\
-                    label="$z={:.1f}$".format(zz))
+                    label="z={:.1f}".format(zz))
         ax[ii].plot(pkd[:,0],rats+0.2*(jj//2),col+'--', alpha=0.7, lw=2)
-        ax[ii].plot(pkd[:,0],rat+0.2*(jj//2),'k:', lw=1)
+        ax[ii].plot(pkd[:,0],ratlin+0.2*(jj//2),'k:', lw=1)
 
         ii = (ii+1)%2
         jj =  jj+1
     # Tidy up the plot.
     for ii in range(ax.size):
-        ax[ii].legend(ncol=2,framealpha=0.5)
+        ax[ii].legend(ncol=2,framealpha=0.5,prop=fontmanage)
         ax[ii].set_xlim(0.03,0.4)
         ax[ii].set_ylim(0.75,1.5)
         ax[ii].set_xscale('linear')
         ax[ii].set_yscale('linear')
     # Put on some more labels.
-    ax[0].set_xlabel(r'$k\quad [h\,{\rm Mpc}^{-1}]$')
-    ax[1].set_xlabel(r'$k\quad [h\,{\rm Mpc}^{-1}]$')
-    ax[0].set_ylabel(r'$P(k)/P_{\rm nw}(k)$+offset')
+    ax[0].set_xlabel(r'$k\quad [h\,{\rm Mpc}^{-1}]$', fontdict=font)
+    ax[1].set_xlabel(r'$k\quad [h\,{\rm Mpc}^{-1}]$', fontdict=font)
+    ax[0].set_ylabel(r'$P(k)/P_{\rm nw}(k)$+offset', fontdict=font)
+#    for axis in ax:
+#        axis.set_xlabel(r'k [h Mpc$^{-1}$]', fontdict=font)
+#    ax[0].set_ylabel(r'P(k)/P$_{\rm nw}$(k)+offset', fontdict=font)
+    for axis in ax.flatten():
+        for tick in axis.xaxis.get_major_ticks():
+            tick.label.set_fontproperties(fontmanage)
+        for tick in axis.yaxis.get_major_ticks():
+            tick.label.set_fontproperties(fontmanage)
+
+
     # and finish up.
     plt.tight_layout()
     plt.savefig(fname)
