@@ -9,8 +9,18 @@ from scipy.interpolate import LSQUnivariateSpline as Spline
 from scipy.interpolate import InterpolatedUnivariateSpline as ius
 from scipy.signal import savgol_filter
 #
-from matplotlib import rcParams
+from matplotlib import rc, rcParams, font_manager
 rcParams['font.family'] = 'serif'
+fsize = 12
+fontmanage = font_manager.FontProperties(family='serif', style='normal',
+    size=fsize, weight='normal', stretch='normal')
+font = {'family': fontmanage.get_family()[0],
+        'style':  fontmanage.get_style(),
+        'weight': fontmanage.get_weight(),
+        'size': fontmanage.get_size(),
+        }
+
+print(font)
 
 
 #
@@ -78,19 +88,19 @@ def make_bias_omHI_plot(fname, fsize=10):
         axar[0].plot(zlist, bbs, 'C%d'%im, marker='.', label=model)
         axar[1].plot(zlist, omz, 'C%d'%im, marker='.')
 
-    axar[0].set_ylabel(r'$b_{DLA}(z)$')
-    axar[1].set_ylabel(r'$\Omega_{HI}$')
+    axar[0].set_ylabel(r'b$_{\rm DLA}$(z)', fontdict=font)
+    axar[1].set_ylabel(r'$\Omega_{\rm HI} \times 10^{-3}$', fontdict=font)
     #axar[1].set_yscale('log')
     axar[1].set_ylim(0.5, 1.5)
     for axis in axar:
         axis.set_xlim(1.5, 6.1)
-        axis.legend(fontsize=fsize)
+        axis.legend(prop=fontmanage)
         for tick in axis.xaxis.get_major_ticks():
-            tick.label.set_fontsize(fsize)
+            tick.label.set_fontproperties(fontmanage)
         for tick in axis.yaxis.get_major_ticks():
-            tick.label.set_fontsize(fsize)
+            tick.label.set_fontproperties(fontmanage)
 
-        axis.set_xlabel(r'$z$')
+        axis.set_xlabel(r'z', fontdict=font)
 
     # and finish up.
     plt.tight_layout()
@@ -110,7 +120,7 @@ def make_HIdist_plot(fname, fsize=13):
         print(model)
         for iz, zz in enumerate(zlist):
             # Read the data from file.
-            axar[0, iz].set_title('z = %0.1f'%zz, fontsize=fsize)
+            axar[0, iz].set_title('z = %0.1f'%zz, fontdict=font)
             aa  = 1.0/(1.0+zz)
             dist = np.loadtxt(dpath + "HI_dist_{:06.4f}.txt".format(aa))[:,:]
             dist = dist[dist[:,1] !=0]
@@ -128,28 +138,28 @@ def make_HIdist_plot(fname, fsize=13):
 
         
 
-    axar[0, 0].legend(fontsize=fsize)
+    axar[0, 0].legend(prop=fontmanage)
 
     for axis in axar.flatten():
         axis.set_xscale('log')
         axis.grid(which='both')
         axis.grid(which='both')
         for tick in axis.xaxis.get_major_ticks():
-            tick.label.set_fontsize(fsize)
+            tick.label.set_fontproperties(fontmanage)
         for tick in axis.yaxis.get_major_ticks():
-            tick.label.set_fontsize(fsize)
+            tick.label.set_fontproperties(fontmanage)
 
-    for axis in axar[-1]: axis.set_xlabel(r'M$\rm_h$$(\rm M_{\odot}/h)$', fontsize=fsize)
+    for axis in axar[-1]: axis.set_xlabel(r'M$\rm_h$$(\rm M_{\odot}/h)$', fontdict=font)
     for axis in axar[0, :]: 
         axis.set_yscale('log')
         axis.set_ylim(8e4, 1.1e11)
-    axar[0, 0].set_ylabel(r'M$\rm _{HI}(M_{\odot}/h)$', fontsize=fsize)
+    axar[0, 0].set_ylabel(r'M$\rm _{HI}(M_{\odot}/h)$', fontdict=font)
     #for axis in axar[1, :]: 
         #axis.set_ylim(0, 1.1)
-    axar[1, 0].set_ylabel(r'$\frac{1}{\rm{HI}_{total}}\frac{\rm{dHI}}{\rm{dlogM}_h}$', fontsize=fsize)
+    axar[1, 0].set_ylabel(r'$\frac{1}{\rm{HI}_{total}}\frac{\rm{dHI}}{\rm{dlogM}_h}$', fontdict=font)
     for axis in axar[2, :]: 
         axis.set_ylim(0, 1.02)
-    axar[2, 0].set_ylabel(r'$\rm\frac{HI_{satellite}}{HI_{halo}}$', fontsize=fsize+1)
+    axar[2, 0].set_ylabel(r'$\rm\frac{HI_{satellite}}{HI_{halo}}$', fontdict=font)
     # and finish up.
     plt.tight_layout()
     plt.savefig(fname)

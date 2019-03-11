@@ -5,6 +5,7 @@
 import numpy as np
 import sys, os
 import matplotlib.pyplot as plt
+from scipy.interpolate import InterpolatedUnivariateSpline as ius
 #
 from matplotlib import rc, rcParams, font_manager
 rcParams['font.family'] = 'serif'
@@ -68,8 +69,10 @@ def make_xib_plot():
 
 
         # and the inferred biases.
-        ba = np.sqrt(xih[:,1]/xim[:,1])
-        bx = xix[:,1]/xim[:,1]
+        ba = np.sqrt(ius(xih[:,0],xih[:,1])(xim[:,0])/xim[:,1])
+        bx = ius(xix[:,0], xix[:,1])(xim[:,0])/xim[:,1] 
+        #ba = np.sqrt(xih[:,1]/xim[:,1])
+        #bx = xix[:,1]/xim[:,1]
         ax[1].plot(xih[:,0],bx,'s-' ,color=col,mfc='None',alpha=0.75, markersize=3)
         ax[1].plot(xih[:,0],ba,'o--',color=col,mfc=mfc,alpha=0.75, markersize=3)
         # put on a line for Sigma -- labels make this too crowded.
