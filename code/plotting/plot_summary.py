@@ -111,7 +111,7 @@ def make_bias_omHI_plot(fname, fsize=10):
 def make_HIdist_plot(fname, fsize=13):
     """Plot fraction of HI in satellites as function of halo mass"""
     zlist = [2.0,4.0,6.0]
-    fig, axar = plt.subplots(3,3,figsize=(13, 11), sharex=True, sharey='row')
+    fig, axar = plt.subplots(3,3,figsize=(11, 8), sharex=True, sharey='row')
 
     # Now make the figure.
     #for im, model in enumerate(['ModelA', 'ModelB']):
@@ -124,21 +124,22 @@ def make_HIdist_plot(fname, fsize=13):
             aa  = 1.0/(1.0+zz)
             dist = np.loadtxt(dpath + "HI_dist_{:06.4f}.txt".format(aa))[:,:]
             dist = dist[dist[:,1] !=0]
-            xx = dist[:, 0]
 
-            axar[0, iz].plot(xx, dist[:, 2], 'C%d'%im, marker='.', label=model)
+            xx = dist[:, 0]
+            axar[0, iz].plot(xx, dist[:, 2], 'C%d'%im, marker='.', label=model, lw=2)
 
             nn = dist[:, 1]
+            difflogm = np.diff(np.log(xx))[0]
+            print(difflogm)
             h1frac = (dist[:, 2]*nn)/(dist[:, 2]*nn).sum()
+            h1frac /= difflogm
+            axar[1, iz].plot(xx, h1frac, 'C%d'%im, marker='.', lw=2)
 
-            axar[1, iz].plot(xx, h1frac, 'C%d'%im, marker='.')
             satfrac = dist[:, 4]/(dist[:, 2] + 1e-10)
-            axar[2, iz].plot(xx, satfrac, 'C%d'%im, marker='.')
-
-
-        
+            axar[2, iz].plot(xx, satfrac, 'C%d'%im, marker='.', lw=2)       
 
     axar[0, 0].legend(prop=fontmanage)
+
 
     for axis in axar.flatten():
         axis.set_xscale('log')
@@ -149,6 +150,7 @@ def make_HIdist_plot(fname, fsize=13):
         for tick in axis.yaxis.get_major_ticks():
             tick.label.set_fontproperties(fontmanage)
 
+
     for axis in axar[-1]: axis.set_xlabel(r'M$\rm_h$$(\rm M_{\odot}/h)$', fontdict=font)
     for axis in axar[0, :]: 
         axis.set_yscale('log')
@@ -156,10 +158,13 @@ def make_HIdist_plot(fname, fsize=13):
     axar[0, 0].set_ylabel(r'M$\rm _{HI}(M_{\odot}/h)$', fontdict=font)
     #for axis in axar[1, :]: 
         #axis.set_ylim(0, 1.1)
-    axar[1, 0].set_ylabel(r'$\frac{1}{\rm{HI}_{total}}\frac{\rm{dHI}}{\rm{dlogM}_h}$', fontdict=font)
+    #axar[1, 0].set_ylabel(r'$\frac{1}{\rm{HI}_{total}}\frac{\rm{dHI}}{\rm{dlogM}_h}$', fontdict=font)
+    axar[1, 0].set_ylabel(r'$d\,{\rm f_{HI}}\,/\,d\,{\rmlog\, M_h}$', fontdict=font)
     for axis in axar[2, :]: 
-        axis.set_ylim(0, 1.02)
-    axar[2, 0].set_ylabel(r'$\rm\frac{HI_{satellite}}{HI_{halo}}$', fontdict=font)
+        axis.set_ylim(-0.05, 1.02)
+    #axar[2, 0].set_ylabel(r'$\rm\frac{HI_{satellite}}{HI_{halo}}$', fontdict=font)
+    #axar[2, 0].set_ylabel(r'HI$_{\rm sat}$/HI$_{\rm halo}$', fontdict=font)
+    axar[2, 0].set_ylabel(r'M$\rm _{HI}^{sat}\,/\,M _{HI}^{h}$', fontdict=font)
     # and finish up.
     plt.tight_layout()
     plt.savefig(fname)
