@@ -59,7 +59,7 @@ def make_xib_plot():
         # Plot the data, xi_mm, xi_hm, xi_hh
 
         xim = np.loadtxt(dpath + "ximatter_{:06.4f}.txt".format(aa))
-        ax[0].plot(xim[:,0],xim[:,1],'d--',color=col,mfc=mfc,alpha=0.75, markersize=3)
+        ax[0].plot(xim[:,0],xim[:,1],'*--',color=col,mfc=mfc,alpha=0.5, markersize=3)
 
         xix = np.loadtxt(dpath + "ximxh1mass_{:06.4f}.txt".format(aa))
         ax[0].plot(xix[:,0],xix[:,1],'s-',color=col,mfc='None',alpha=0.75, markersize=3)
@@ -73,14 +73,18 @@ def make_xib_plot():
         bx = ius(xix[:,0], xix[:,1])(xim[:,0])/xim[:,1] 
         #ba = np.sqrt(xih[:,1]/xim[:,1])
         #bx = xix[:,1]/xim[:,1]
-        ax[1].plot(xih[:,0],bx,'s-' ,color=col,mfc='None',alpha=0.75, markersize=3)
-        ax[1].plot(xih[:,0],ba,'o--',color=col,mfc=mfc,alpha=0.75, markersize=3)
+        xx = [i.mean() for i in np.array_split(xim[:,0], np.arange(2, 28, 2))]
+        ba = [i.mean() for i in np.array_split(ba, np.arange(2, 28, 2))]
+        bx = [i.mean() for i in np.array_split(bx, np.arange(2, 28, 2))]
+        
+        ax[1].plot(xx,bx,'s-' ,color=col,mfc='None',alpha=0.75, markersize=3)
+        ax[1].plot(xx,ba,'o--',color=col,mfc=mfc,alpha=0.75, markersize=3)
         # put on a line for Sigma -- labels make this too crowded.
         pk  = np.loadtxt("../../data/pklin_{:6.4f}.txt".format(aa))
         Sig = np.sqrt(np.trapz(pk[:,1],x=pk[:,0])/6./np.pi**2)
         ax[0].plot([Sig,Sig],[1e-10,1e10],':',color='darkgrey')
         # Tidy up the plot.
-        ax[0].set_ylim(0.005,20.)
+        ax[0].set_ylim(0.008,13.)
         ax[0].set_yscale('log')
         #
         ax[1].set_ylim(1.0,5.0)
