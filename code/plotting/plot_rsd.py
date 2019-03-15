@@ -241,7 +241,7 @@ def make_pkmudiff_ratio_plot(fname, fsize=11):
     # Put on some more labels.
     for axis in ax[-1, :]: axis.set_xlabel(r'$k\quad [h\,{\rm Mpc}^{-1}]$', fontdict=font)
     #for axis in ax[:, 0]: axis.set_ylabel(r'$P(k, 0.87)/P(k, 0.12)$', fontdict=font)
-    for axis in ax[:, 0]: axis.set_ylabel(r'$F^b$', fontdict=font)
+    for axis in ax[:, 0]: axis.set_ylabel(r'$\mathcal{K}$', fontdict=font)
     for axis in ax.flatten(): 
         axis.axhline(1, color='grey', lw=0.5)
         for tick in axis.xaxis.get_major_ticks():

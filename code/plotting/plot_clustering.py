@@ -6,6 +6,9 @@ import numpy as np
 import os, sys
 import matplotlib.pyplot as plt
 from scipy.interpolate import InterpolatedUnivariateSpline as ius
+from scipy.integrate import simps
+from scipy.special import spherical_jn
+j0 = lambda x: spherical_jn(0, x)
 #
 
 from matplotlib import rc, rcParams, font_manager
@@ -155,14 +158,31 @@ def make_clustering_plot():
         ax[iz,0].text(1.1*knl,1e4,r'$k_{\rm nl}$',color='darkgrey',\
                        ha='left',va='center', fontdict=font)
 
-        #
+        # Plot the data, ximm, xihm, xihh
         xim = np.loadtxt(dpathxi + "ximatter_{:06.4f}.txt".format(aa))
         xix = np.loadtxt(dpathxi + "ximxh1mass_{:06.4f}.txt".format(aa))
         xih = np.loadtxt(dpathxi + "xih1mass_{:06.4f}.txt".format(aa))
+        bx = ius(xix[:,0], xix[:,1])(xim[:,0])/xim[:,1] 
+        xx = np.array([i.mean() for i in np.array_split(xim[:,0], np.arange(2, 28, 2))])
+        bx = np.array([i.mean() for i in np.array_split(bx, np.arange(2, 28, 2))])
+        bb = bx[-6:].mean()
 
         ax[iz,1].plot(xim[:,0],xim[:,1],'C0')
         ax[iz,1].plot(xix[:,0],xix[:,1],'C1-')
         ax[iz,1].plot(xih[:,0],xih[:,1],'C2-')
+
+        # and the linear theory counterparts.
+        klin, plin = pk.T
+        del2 = klin**3*plin/2/np.pi**2
+        rlin = np.linspace(0.5, 35)
+        xilin = np.zeros_like(rlin)
+        for i in range(rlin.size): xilin[i] = simps(del2*j0(klin*rlin[i])/klin, klin)
+        
+        ax[iz,1].plot(rlin,bb**0*xilin,'C0:')
+        ax[iz,1].plot(rlin,bb**1*xilin,'C1:')
+        ax[iz,1].plot(rlin,bb**2*xilin,'C2:')
+        
+        # put on a marker for sig.
         sig = np.sqrt(np.trapz(pk[:,1],x=pk[:,0])/6./np.pi**2)
         ax[iz,1].axvline(sig,ls=':',color='darkgrey')
         ax[iz,1].text(1.1*sig,2e-2,r'$\Sigma_{\rm nl}$',color='darkgrey',\
