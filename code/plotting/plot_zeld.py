@@ -46,9 +46,13 @@ tb = '../..//theory/'
 def make_pkr_plot():
     """Does the work of making the real-space P(k) figure."""
     zlist = [2.000,6.000]
-    b1lst = [0.938,2.788]
-    b2lst = [0.400,5.788]
-    alpha = [1.663,0.138]
+    #b1lst = [0.938,2.788]
+    #b2lst = [0.400,5.788]
+    #alpha = [1.663,0.138]
+    b1lst = [0.900,2.750]
+    b2lst = [0.800,6.250]
+    alpha = [1.500,0.145]
+
     # Now make the figure.
     fig,ax = plt.subplots(2,2,figsize=(6,4),sharex=True,\
                gridspec_kw={'height_ratios':[3,1]})
@@ -153,7 +157,8 @@ def make_pks_plot():
     b1lst = [0.925,2.725]
     b2lst = [1.000,7.375]
     a0lst = [0.050,-1.38]
-    a2lst = [4.763,2.288]
+    #a2lst = [4.763,2.288]
+    a2lst = [3.800,2.000]
     # Now make the figure.
     fig,ax = plt.subplots(2,2,figsize=(6,4),sharex=True,\
                gridspec_kw={'height_ratios':[3,1]})
