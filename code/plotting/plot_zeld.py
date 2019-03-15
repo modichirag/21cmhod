@@ -9,14 +9,37 @@ matplotlib.use('Agg')
 import numpy as np
 import matplotlib.pyplot as plt
 
+from matplotlib import rc, rcParams, font_manager
+rcParams['font.family'] = 'serif'
+fsize = 12
+fontmanage = font_manager.FontProperties(family='serif', style='normal',
+    size=fsize, weight='normal', stretch='normal')
+font = {'family': fontmanage.get_family()[0],
+        'style':  fontmanage.get_style(),
+        'weight': fontmanage.get_weight(),
+        'size': fontmanage.get_size(),
+        }
 
-db = '../../data/outputs/m1_00p3mh-alpha-0p8-subvol-big/ModelA/'
+
+#
+import argparse
+parser = argparse.ArgumentParser()
+parser.add_argument('-s', '--size', help='which box size simulation', default='big')
+args = parser.parse_args()
+boxsize = args.size
+
+suff = 'm1_00p3mh-alpha-0p8-subvol'
+if boxsize == 'big':
+    suff = suff + '-big'
+    bs = 1024
+else: bs = 256
+
+figpath = '../../figs/%s/'%(suff)
+try: os.makedirs(figpath)
+except: pass
+
+db = '../../data/outputs/%s/ModelA/'%suff
 tb = '../..//theory/'
-
-
-
-
-
 
 
 
@@ -41,17 +64,17 @@ def make_pkr_plot():
         plh = pk[:,1] * (1+b1lst[ii])**2
         plx = pk[:,1] * (1+b1lst[ii])
         plm = pk[:,1] *  1.0
-        ax[0,ii].plot(pk[:,0],plh,'b-')
-        ax[0,ii].plot(pk[:,0],plx,'c-')
-        ax[0,ii].plot(pk[:,0],plm,'k-')
+        ax[0,ii].plot(pk[:,0],plm,'C0:', lw=1.5)
+        ax[0,ii].plot(pk[:,0],plx,'C1:', lw=1.5)
+        ax[0,ii].plot(pk[:,0],plh,'C2:', lw=1.5)
         # Plot the data, Pmm, Phm, Phh
         pkd = np.loadtxt(db+"HI_bias_{:06.4f}.txt".format(aa))[1:,:]
         pkm = pkd[:,3]
         pkh = pkd[:,3] * pkd[:,2]**2
         pkx = pkd[:,3] * pkd[:,1]
-        ax[0,ii].plot(pkd[:,0],pkh,'b--',alpha=0.75)
-        ax[0,ii].plot(pkd[:,0],pkx,'c--',alpha=0.75)
-        ax[0,ii].plot(pkd[:,0],pkm,'k--',alpha=0.75)
+        ax[0,ii].plot(pkd[:,0],pkm,'C0-',alpha=0.75, lw=1.2, label=r'$P_{\rm m-m}$')
+        ax[0,ii].plot(pkd[:,0],pkx,'C1-',alpha=0.75, lw=1.2, label=r'$P_{\rm HI-m}$')
+        ax[0,ii].plot(pkd[:,0],pkh,'C2-',alpha=0.75, lw=1.2, label=r'$P_{\rm HI-HI}$')
         # Now Zeldovich.
         #pkz = np.loadtxt("pkzel_{:6.4f}.txt".format(aa))
         pkz = np.loadtxt(tb+"zeld_{:6.4f}.pkr".format(aa))
@@ -60,17 +83,17 @@ def make_pkr_plot():
               b1**2*pkz[:,4]+b2**2*pkz[:,5]+b1*b2*pkz[:,6]
         pzx = (1+alpha[ii]*kk**2)*pkz[:,1]+0.5*b1*pkz[:,2]+0.5*b2*pkz[:,3]
         pzm = (1+alpha[ii]*kk**2)*pkz[:,1]
-        ax[0,ii].plot(kk[kk<knl],pzh[kk<knl],'b:')
-        ax[0,ii].plot(kk[kk<knl],pzx[kk<knl],'c:')
-        ax[0,ii].plot(kk[kk<knl],pzm[kk<knl],'k:')
+        ax[0,ii].plot(kk[kk<knl],pzm[kk<knl],'C0--', lw=2.2)
+        ax[0,ii].plot(kk[kk<knl],pzx[kk<knl],'C1--', lw=2.2)
+        ax[0,ii].plot(kk[kk<knl],pzh[kk<knl],'C2--', lw=2.2)
         # Now plot the ratios.
         ww = np.nonzero( pkd[:,0]<knl )[0]
         rh = np.interp(pkd[ww,0],kk,pzh)/pkh[ww]
         rx = np.interp(pkd[ww,0],kk,pzx)/pkx[ww]
         rm = np.interp(pkd[ww,0],kk,pzm)/pkm[ww]
-        ax[1,ii].plot(pkd[ww,0],rh,'b:')
-        ax[1,ii].plot(pkd[ww,0],rx,'c:')
-        ax[1,ii].plot(pkd[ww,0],rm,'k:')
+        ax[1,ii].plot(pkd[ww,0],1/rm,'C0', lw=1.2)
+        ax[1,ii].plot(pkd[ww,0],1/rx,'C1', lw=1.2)
+        ax[1,ii].plot(pkd[ww,0],1/rh,'C2', lw=1.2)
         # Add a grey shaded region.
         ax[1,ii].fill_between([1e-5,3],[0.95,0.95],[1.05,1.05],\
                    color='lightgrey',alpha=0.25)
@@ -79,14 +102,14 @@ def make_pkr_plot():
         # put on a line for knl.
         ax[0,ii].plot([knl,knl],[1e-10,1e10],':',color='darkgrey')
         ax[0,ii].text(0.9*knl,1e4,r'$k_{\rm nl}$',color='darkgrey',\
-                       ha='right',va='center')
+                       ha='right',va='center', fontdict=font)
         ax[1,ii].plot([knl,knl],[1e-10,1e10],':',color='darkgrey')
         # Tidy up the plot.
         ax[0,ii].set_xlim(0.02,1.0)
         ax[0,ii].set_ylim(2.0,3e4)
         ax[0,ii].set_xscale('log')
         ax[0,ii].set_yscale('log')
-        ax[0,ii].text(0.025,5.,"$z={:.1f}$".format(zz))
+        ax[0,ii].text(0.025,150.,"$z={:.1f}$".format(zz), fontdict=font)
         ax[1,ii].set_xlim(0.02,1.0)
         ax[1,ii].set_ylim(0.90,1.1)
         ax[1,ii].set_xscale('log')
@@ -97,13 +120,20 @@ def make_pkr_plot():
         ax[0,ii].get_yaxis().set_visible(False)
         ax[1,ii].get_yaxis().set_visible(False)
     # Put on some more labels.
-    ax[1,0].set_xlabel(r'$k\quad [h\,{\rm Mpc}^{-1}]$')
-    ax[1,1].set_xlabel(r'$k\quad [h\,{\rm Mpc}^{-1}]$')
-    ax[0,0].set_ylabel(r'$P(k)\quad [h^{-3}{\rm Mpc}^3]$')
-    ax[1,0].set_ylabel(r'$P_Z/P_{N-body}$')
+    ax[0,0].legend(prop=fontmanage)
+    ax[1,0].set_xlabel(r'$k\quad [h\,{\rm Mpc}^{-1}]$', fontdict=font)
+    ax[1,1].set_xlabel(r'$k\quad [h\,{\rm Mpc}^{-1}]$', fontdict=font)
+    ax[0,0].set_ylabel(r'$P(k)\quad [h^{-3}{\rm Mpc}^3]$', fontdict=font)
+    ax[1,0].set_ylabel(r'$P_{N-body}/P_Z$', fontdict=font)
+
+    for axis in ax.flatten():
+        for tick in axis.xaxis.get_major_ticks():
+            tick.label.set_fontproperties(fontmanage)
+        for tick in axis.yaxis.get_major_ticks():
+            tick.label.set_fontproperties(fontmanage)
     # and finish up.
     plt.tight_layout()
-    plt.savefig('zeld_pkr.pdf')
+    plt.savefig(figpath + '/zeld_pkr.pdf')
     #
 
 
@@ -142,8 +172,8 @@ def make_pks_plot():
         pkd = np.loadtxt(db+"HI_pks_ll_{:06.4f}.txt".format(aa))
         pk0 = pkd[:,1]
         pk2 = pkd[:,2]
-        ax[0,ii].plot(pkd[:,0],pk0,'b--',alpha=0.75)
-        ax[0,ii].plot(pkd[:,0],pk2,'r--',alpha=0.75)
+        ax[0,ii].plot(pkd[:,0],pk0,'C0-',alpha=0.75, lw=1.2, label=r'$\ell=0$')
+        ax[0,ii].plot(pkd[:,0],pk2,'C1-',alpha=0.75, lw=1.2, label=r'$\ell=2$')
         # Now Zeldovich.
         pz0 = np.loadtxt(tb+"zeld_{:6.4f}.pk0".format(aa))
         pz2 = np.loadtxt(tb+"zeld_{:6.4f}.pk2".format(aa))
@@ -152,14 +182,14 @@ def make_pks_plot():
               b1**2*pz0[:,4]+b2**2*pz0[:,5]+b1*b2*pz0[:,6]
         pz2 = (1+a2*kk**2)*pz2[:,1]+b1*pz2[:,2]+b2*pz2[:,3]+\
               b1**2*pz2[:,4]+b2**2*pz2[:,5]+b1*b2*pz2[:,6]
-        ax[0,ii].plot(kk[kk<knl],pz0[kk<knl],'b:')
-        ax[0,ii].plot(kk[kk<knl],pz2[kk<knl],'r:')
+        ax[0,ii].plot(kk[kk<knl],pz0[kk<knl],'C0--', lw=2.2)
+        ax[0,ii].plot(kk[kk<knl],pz2[kk<knl],'C1--', lw=2.2)
         # Now plot the ratios.
         ww = np.nonzero( pkd[:,0]<knl )[0]
         r0 = np.interp(pkd[ww,0],kk,pz0)/pk0[ww]
         r2 = np.interp(pkd[ww,0],kk,pz2)/pk2[ww]
-        ax[1,ii].plot(pkd[ww,0],r0,'b:')
-        ax[1,ii].plot(pkd[ww,0],r2,'r:')
+        ax[1,ii].plot(pkd[ww,0],1/r0,'C0', lw=1.2)
+        ax[1,ii].plot(pkd[ww,0],1/r2,'C1', lw=1.2)
         # Add a grey shaded region.
         ax[1,ii].fill_between([1e-5,3],[0.95,0.95],[1.05,1.05],\
                    color='lightgrey',alpha=0.25)
@@ -168,14 +198,14 @@ def make_pks_plot():
         # put on a line for knl.
         ax[0,ii].plot([knl,knl],[1e-10,1e10],':',color='darkgrey')
         ax[0,ii].text(0.9*knl,1e4,r'$k_{\rm nl}$',color='darkgrey',\
-                       ha='right',va='center')
+                       ha='right',va='center', fontdict=font)
         ax[1,ii].plot([knl,knl],[1e-10,1e10],':',color='darkgrey')
         # Tidy up the plot.
         ax[0,ii].set_xlim(0.02,1.0)
         ax[0,ii].set_ylim(2.0,3e4)
         ax[0,ii].set_xscale('log')
         ax[0,ii].set_yscale('log')
-        ax[0,ii].text(0.025,5.,"$z={:.1f}$".format(zz))
+        ax[0,ii].text(0.025,100.,"$z={:.1f}$".format(zz), fontdict=font)
         ax[1,ii].set_xlim(0.02,1.0)
         ax[1,ii].set_ylim(0.90,1.1)
         ax[1,ii].set_xscale('log')
@@ -186,13 +216,22 @@ def make_pks_plot():
         ax[0,ii].get_yaxis().set_visible(False)
         ax[1,ii].get_yaxis().set_visible(False)
     # Put on some more labels.
-    ax[1,0].set_xlabel(r'$k\quad [h\,{\rm Mpc}^{-1}]$')
-    ax[1,1].set_xlabel(r'$k\quad [h\,{\rm Mpc}^{-1}]$')
-    ax[0,0].set_ylabel(r'$P_\ell(k)\quad [h^{-3}{\rm Mpc}^3]$')
-    ax[1,0].set_ylabel(r'$P_Z/P_{N-body}$')
+    ax[0,0].legend(prop=fontmanage)
+    ax[1,0].set_xlabel(r'$k\quad [h\,{\rm Mpc}^{-1}]$', fontdict=font)
+    ax[1,1].set_xlabel(r'$k\quad [h\,{\rm Mpc}^{-1}]$', fontdict=font)
+    ax[0,0].set_ylabel(r'$P_\ell(k)\quad [h^{-3}{\rm Mpc}^3]$', fontdict=font)
+    ax[1,0].set_ylabel(r'$P_{N-body}/P_Z$', fontdict=font)
+
+    for axis in ax.flatten():
+        for tick in axis.xaxis.get_major_ticks():
+            tick.label.set_fontproperties(fontmanage)
+        for tick in axis.yaxis.get_major_ticks():
+            tick.label.set_fontproperties(fontmanage)
+
     # and finish up.
     plt.tight_layout()
-    plt.savefig('zeld_pks.pdf')
+    plt.savefig(figpath + '/zeld_pks.pdf')
+    #plt.savefig('zeld_pks.pdf')
     #
 
 

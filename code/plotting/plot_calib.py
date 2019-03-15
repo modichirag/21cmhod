@@ -49,7 +49,8 @@ def make_calib_plot():
     zlist = [2.0,2.5,3.0,3.5,4.0,4.5,5.0,5.5,6.0]
 
     # Now make the figure.
-    fig,ax = plt.subplots(1,2,figsize=(7,3.5))
+    fig,ax = plt.subplots(1,2,figsize=(7,3))
+    ax = ax[::-1]
 
     # The left hand panel is DLA bias vs. redshift.
     bDLA = np.loadtxt("../../data/boss_bDLA.txt")
@@ -139,14 +140,15 @@ def make_calib_full_plot():
     zlist = [2.0,2.5,3.0,3.5,4.0,4.5,5.0,5.5,6.0]
 
     # Now make the figure.
-    fig,ax = plt.subplots(1,2,figsize=(7,3.5))
+    fig,ax = plt.subplots(1,2,figsize=(7,3))
+    ax = ax[::-1]
 
     # The left hand panel is DLA bias vs. redshift.
 
     inax = inset_axes(ax[0],
                       width="60%", # width = 30% of parent_bbox
                       height= "30%",#1., # height : 1 inch
-                      loc=2,  bbox_to_anchor=(0.3,-0.58,1,1),
+                      loc=2,  bbox_to_anchor=(0.3,-0.56,1,1),
                       bbox_transform=ax[0].transAxes)
 
     bDLA = np.loadtxt("../../data/boss_bDLA.txt")
@@ -246,7 +248,8 @@ def make_calib_inset_plot():
     zlist = [2.0,2.5,3.0,3.5,4.0,4.5,5.0,5.5,6.0]
 
     # Now make the figure.
-    fig,ax = plt.subplots(1,2,figsize=(7,3.5))
+    fig,ax = plt.subplots(1,2,figsize=(7,3))
+    ax = ax[::-1]
 
     # The left hand panel is DLA bias vs. redshift.
 

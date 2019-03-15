@@ -6,12 +6,24 @@ import numpy as np
 import sys, os
 import matplotlib.pyplot as plt
 from scipy.interpolate import InterpolatedUnivariateSpline as ius
-#
-#
-from matplotlib import rcParams
-rcParams['font.family'] = 'serif'
-
 from nbodykit.cosmology.cosmology import Cosmology
+#
+#
+from matplotlib import rc, rcParams, font_manager
+rcParams['font.family'] = 'serif'
+fsize = 12
+fontmanage = font_manager.FontProperties(family='serif', style='normal',
+    size=fsize, weight='normal', stretch='normal')
+font = {'family': fontmanage.get_family()[0],
+        'style':  fontmanage.get_style(),
+        'weight': fontmanage.get_weight(),
+        'size': fontmanage.get_size(),
+        }
+
+print(font)
+
+##
+
 cosmodef = {'omegam':0.309167, 'h':0.677, 'omegab':0.048}
 cosmo = Cosmology.from_dict(cosmodef)
 dgrow = cosmo.scale_independent_growth_factor
@@ -19,7 +31,7 @@ dgrow = cosmo.scale_independent_growth_factor
 #
 import argparse
 parser = argparse.ArgumentParser()
-parser.add_argument('-s', '--size', help='which box size simulation', default='small')
+parser.add_argument('-s', '--size', help='which box size simulation', default='big')
 args = parser.parse_args()
 boxsize = args.size
 
@@ -34,8 +46,6 @@ try: os.makedirs(figpath)
 except Exception as e: print(e)
 
 models  = ['ModelA', 'ModelB', 'ModelC']
-
-
 
 
 
@@ -209,29 +219,31 @@ def make_pkmudiff_ratio_plot(fname, fsize=11):
             bpk = ius(klin, bb**2*plin*dgrow(zz)**2)(pkd[:, 0])
             axis.plot(pkd[:,0], (diff/bpk+1) /(1+beta*mu**2)**2 ,'-',\
                                        color='C%d'%im,alpha=0.95,label=model, lw=2)
-
-            bpk = ius(pkb[:, 0], bh**2*pkb[:, -1])(pkd[:, 0])
-            if im:
-                axis.plot(pkd[:,0], (diff/bpk+1) /(1+beta*mu**2)**2 ,'--',\
-                                       color='C%d'%im,alpha=0.7, lw=2.)
-            else:
-                axis.plot(pkd[:,0], (diff/bpk+1) /(1+beta*mu**2)**2 ,'--',\
-                                       color='C%d'%im,alpha=0.7,label='b(k)P(k)', lw=2.)
-            
+#
+#            bpk = ius(pkb[:, 0], bh**2*pkb[:, -1])(pkd[:, 0])
+#            if im:
+#                axis.plot(pkd[:,0], (diff/bpk+1) /(1+beta*mu**2)**2 ,'--',\
+#                                       color='C%d'%im,alpha=0.7, lw=2.)
+#            else:
+#                axis.plot(pkd[:,0], (diff/bpk+1) /(1+beta*mu**2)**2 ,'--',\
+#                                       color='C%d'%im,alpha=0.7,label='b(k)P(k)', lw=2.)
+#            
         
-            axis.set_xlim(0.02,2)
-            axis.set_ylim(0.55, 2)
+            axis.set_xlim(0.02,1.5)
+            axis.set_ylim(0.55, 2.1)
             axis.set_xscale('log')
             #axis.set_yscale('log')
             text = "$z={:.1f}$".format(zz)
-            axis.text(0.025,1.4,text,ha='left',va='top')
+            axis.text(0.025,0.7,text,ha='left',va='top', color='black', fontdict=font)
             #
-            if iz==0: axis.legend(framealpha=0.5, ncol=1, loc='upper left')
+            if iz==0: axis.legend(framealpha=0.5, ncol=1, loc='upper left', prop=fontmanage)
                     
     # Put on some more labels.
-    for axis in ax[-1, :]: axis.set_xlabel(r'$k\quad [h\,{\rm Mpc}^{-1}]$')
-    for axis in ax[:, 0]: axis.set_ylabel(r'$P(k, 0.87)/P(k, 0.12)$')
+    for axis in ax[-1, :]: axis.set_xlabel(r'$k\quad [h\,{\rm Mpc}^{-1}]$', fontdict=font)
+    #for axis in ax[:, 0]: axis.set_ylabel(r'$P(k, 0.87)/P(k, 0.12)$', fontdict=font)
+    for axis in ax[:, 0]: axis.set_ylabel(r'$F^b$', fontdict=font)
     for axis in ax.flatten(): 
+        axis.axhline(1, color='grey', lw=0.5)
         for tick in axis.xaxis.get_major_ticks():
             tick.label.set_fontsize(fsize)
         for tick in axis.yaxis.get_major_ticks():
