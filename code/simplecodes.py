@@ -24,8 +24,8 @@ zzfiles = [round(tools.atoz(aa), 2) for aa in aafiles]
 bs, nc = 256, 256
 #ncsim, sim, prefix = 256, 'lowres/%d-9100-fixed'%256, 'lowres'
 ncsim, sim, prefix = 2560, 'highres/%d-9100-fixed'%2560, 'highres'
-bs,nc,ncsim = 1024, 1024, 10240
-sim,prefix  = 'highres/%d-9100-fixed'%ncsim, 'highres'
+#bs,nc,ncsim = 1024, 1024, 10240
+#sim,prefix  = 'highres/%d-9100-fixed'%ncsim, 'highres'
 
 # It's useful to have my rank for printing...                                                                                                                                                                                                                                             
 pm   = ParticleMesh(BoxSize=bs, Nmesh=[nc, nc, nc])
@@ -97,47 +97,49 @@ def measurepk(nc=nc, dpath=myscratch):
     pm = ParticleMesh(BoxSize = bs, Nmesh = [nc, nc, nc])
 
     for i, aa in enumerate(aafiles):
-        ofolder = dpath + '/%s/fastpm_%0.4f/'%(sim, aa)
+        fout = "../data/outputs/halos/HI_pks_1d_{:6.4f}.txt".format(aa))
         zz = zzfiles[i]
         print('redshift = ', zz)
         dm = BigFileMesh(dpath + sim + '/fastpm_%0.4f/'%aa + '/dmesh_N%04d'%nc, '1').paint()
+        rank = dm.comm.rank
         halos = BigFileCatalog(dpath + sim + '/fastpm_%0.4f/halocat/'%aa)
         hmass = halos["Mass"].compute()
-        #h1mass = halos['H1mass'].compute()
         hpos = halos['Position'].compute()
-        layout = pm.decompose(hpos)
-        
+
+#        rankweight       = sum([cat[weight].sum().compute() for cat in catalogs])
+#        totweight        = comm.allreduce(rankweight)
+#        for cat in catalogs: cat[weight] /= totweight/float(nc)**3            
+#        layout = pm.decompose(hpos)
+#        
         print("paint")
-        hpmesh = pm.paint(hpos)
-        hmesh = pm.paint(hpos, mass=hmass)
-        #Wh1mesh = pm.paint(hpos, mass=h1mass)
+        hpmesh = pm.paint(hpos, layout=layout)
+        hmesh = pm.paint(hpos, mass=hmass, layout=layout)
+        print(rank, dm.cmean(), hmesh.cmean(), hpos.cmean())
         print("measure powers")
         pkm = FFTPower(dm/dm.cmean(), mode='1d').power
         pkh = FFTPower(hmesh/hmesh.cmean(), mode='1d').power
         pkhp = FFTPower(hpmesh/hpmesh.cmean(), mode='1d').power
-        #pkh1 = FFTPower(h1mesh/h1mesh.cmean(), mode='1d').power
         pkhm = FFTPower(hmesh/hmesh.cmean(), second=dm/dm.cmean(), mode='1d').power
-        #pkh1m = FFTPower(h1mesh/h1mesh.cmean(), second=dm/dm.cmean(), mode='1d').power
         pkhpm = FFTPower(hpmesh/hpmesh.cmean(), second=dm/dm.cmean(), mode='1d').power
+
+
 
         def savebinned(path, binstat, header):
             if halos.comm.rank == 0:
                 k, p, modes = binstat['k'].real, binstat['power'].real, binstat['modes'].real
                 np.savetxt(path, np.stack((k, p, modes), axis=1), header=header)
 
-        inb = 6 
-        biases = [(pkh[1:inb]['power']/pkm[1:inb]['power']).mean()**0.5, (pkhp[1:inb]['power']/pkm[1:inb]['power']).mean()**0.5, (pkhm[1:inb]['power']/pkm[1:inb]['power']).mean(), (pkhpm[1:inb]['power']/pkm[1:inb]['power']).mean()]
-        #print(biases)
-
+#        inb = 6 
+#        biases = [(pkh[1:inb]['power']/pkm[1:inb]['power']).mean()**0.5, (pkhp[1:inb]['power']/pkm[1:inb]['power']).mean()**0.5, (pkhm[1:inb]['power']/pkm[1:inb]['power']).mean(), (pkhpm[1:inb]['power']/pkm[1:inb]['power']).mean()]
+#        #print(biases)
+#
             
         if rank == 0:
             savebinned(ofolder+'pkhpos.txt', pkhp, header='k, P(k), Nmodes')
             savebinned(ofolder+'pkhmass.txt', pkh, header='k, P(k), Nmodes')  
-            #savebinned(ofolder+'pkh1mass.txt', pkh1, header='k, P(k), Nmodes')
             savebinned(ofolder+'pkm.txt', pkm, header='k, P(k), Nmodes')
             savebinned(ofolder+'pkhposxm.txt', pkhpm, header='k, P(k), Nmodes')
             savebinned(ofolder+'pkhmassxm.txt', pkhm, header='k, P(k), Nmodes')
-            #savebinned(ofolder+'pkh1massxm.txt', pkh1m, header='k, P(k), Nmodes')
 
 
 

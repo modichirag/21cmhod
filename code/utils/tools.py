@@ -2,6 +2,8 @@ import numpy as np
 from pmesh.pm import ParticleMesh
 from nbodykit.lab import BigFileCatalog, BigFileMesh, FFTPower
 from nbodykit.source.mesh.field import FieldMesh
+from scipy.interpolate import InterpolatedUnivariateSpline as ius
+from scipy.misc import derivative
 
 def atoz(a): return 1/a - 1
 def ztoa(z): return 1/(z+1)
@@ -95,3 +97,47 @@ def readinsatellites(aafiles, suff, sim, dpath=myscratch, HI_hod=HI_hod):
         shid[zz] = sat['GlobalID'].compute()
         size[zz] = sat.csize
     return spos, smass, shid, sh1mass, size
+
+
+
+
+def loginterp(x, y, yint = None, side = "both", lorder = 15, rorder = 15, lp = 1, rp = -1, \
+                  ldx = 1e-6, rdx = 1e-6, k=5):
+
+    if yint is None:
+        yint = ius(x, y, k = k)
+
+    if side == "both":
+        side = "lr"
+        l =lp
+        r =rp
+    lneff, rneff = 0, 0
+    niter = 0
+    while (lneff <= 0) or (lneff > 1):
+        lneff = derivative(yint, x[l], dx = x[l]*ldx, order = lorder)*x[l]/y[l]
+        l +=1
+        if niter > 100: continue
+    print('Left slope = %0.3f at point '%lneff, l)
+    niter = 0
+    while (rneff < -3) or (rneff > -2):
+        rneff = derivative(yint, x[r], dx = x[r]*rdx, order = rorder)*x[r]/y[r]
+        r -= 1
+        if niter > 100: continue
+    print('Rigth slope = %0.3f at point '%rneff, r)
+
+    xl = np.logspace(-18, np.log10(x[l]), 10**6.)
+    xr = np.logspace(np.log10(x[r]), 10., 10**6.)
+    yl = y[l]*(xl/x[l])**lneff
+    yr = y[r]*(xr/x[r])**rneff
+
+    xint = x[l+1:r].copy()
+    yint = y[l+1:r].copy()
+    if side.find("l") > -1:
+        xint = np.concatenate((xl, xint))
+        yint = np.concatenate((yl, yint))
+    if side.find("r") > -1:
+        xint = np.concatenate((xint, xr))
+        yint = np.concatenate((yint, yr))
+    yint2 = ius(xint, yint, k = k)
+
+    return yint2
