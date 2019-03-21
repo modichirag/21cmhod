@@ -26,9 +26,9 @@ zzfiles = [round(tools.atoz(aa), 2) for aa in aafiles]
 
 #Paramteres
 #Maybe set up to take in as args file?
-bs, nc, ncsim, sim, prefix = 256, 256, 256, 'lowres/%d-9100-fixed'%256, 'lowres'
-bs, nc, ncsim, sim, prefix = 256, 256, 2560, 'highres/%d-9100-fixed'%2560, 'highres'
-bs, nc, ncsim, sim, prefix = 1024, 1024, 10240, 'highres/%d-9100-fixed'%10240, 'highres'
+#bs, nc, ncsim, sim, prefix = 256, 256, 256, 'lowres/%d-9100-fixed'%256, 'lowres'
+bs, nc, ncsim, sim, prefix = 256, 256, 2560, 'highres/%d-9100-fixed-up'%2560, 'highres'
+#bs, nc, ncsim, sim, prefix = 1024, 1024, 10240, 'highres/%d-9100-fixed-up'%10240, 'highres'
 
 
 
