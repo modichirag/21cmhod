@@ -108,6 +108,13 @@ def make_pkr_plot():
         ax[0,ii].text(0.9*knl,1e4,r'$k_{\rm nl}$',color='darkgrey',\
                        ha='right',va='center', fontdict=font)
         ax[1,ii].plot([knl,knl],[1e-10,1e10],':',color='darkgrey')
+        #cosmic variance
+        kk = pkd[ww, 0]#np.logspace(-2, 0, 1000)
+        Nk = 4*np.pi*kk[:-1]**2*np.diff(kk)*bs**2
+        print(Nk)
+        ax[1,ii].fill_between(kk[:-1], 1-np.sqrt(2/Nk), 1+np.sqrt(2/Nk), 
+                              color='red',alpha=0.2)
+
         # Tidy up the plot.
         ax[0,ii].set_xlim(0.02,1.0)
         ax[0,ii].set_ylim(2.0,3e4)
@@ -158,9 +165,11 @@ def make_pks_plot():
     b2lst = [1.000,7.375]
     a0lst = [0.050,-1.38]
     #a2lst = [4.763,2.288]
-    a2lst = [3.800,2.000]
+    #a2lst = [3.800,2.000]
+    a2lst = [5.00,2.500]
+
     # Now make the figure.
-    fig,ax = plt.subplots(2,2,figsize=(6,4),sharex=True,\
+    fig,ax = plt.subplots(2,2,figsize=(6,4),sharex=True,sharey='row',\
                gridspec_kw={'height_ratios':[3,1]})
     for ii in range(ax.shape[1]):
         zz = zlist[ii]
@@ -200,28 +209,43 @@ def make_pks_plot():
                    color='lightgrey',alpha=0.25)
         ax[1,ii].fill_between([1e-5,3],[0.98,0.98],[1.02,1.02],\
                    color='darkgrey',alpha=0.5)
+        kk = pkd[:, 0]#np.logspace(-2, 0, 1000)
+        Nk = 4*np.pi*kk[:-1]**2*np.diff(kk)*bs**2
+        print(Nk)
+        ax[1,ii].fill_between(kk[:-1], 1-np.sqrt(2/Nk), 1+np.sqrt(2/Nk), 
+                              color='red',alpha=0.2)
+        
         # put on a line for knl.
         ax[0,ii].plot([knl,knl],[1e-10,1e10],':',color='darkgrey')
-        ax[0,ii].text(0.9*knl,1e4,r'$k_{\rm nl}$',color='darkgrey',\
-                       ha='right',va='center', fontdict=font)
         ax[1,ii].plot([knl,knl],[1e-10,1e10],':',color='darkgrey')
-        # Tidy up the plot.
-        ax[0,ii].set_xlim(0.02,1.0)
-        ax[0,ii].set_ylim(2.0,3e4)
-        ax[0,ii].set_xscale('log')
-        ax[0,ii].set_yscale('log')
-        ax[0,ii].text(0.025,100.,"$z={:.1f}$".format(zz), fontdict=font)
-        ax[1,ii].set_xlim(0.02,1.0)
-        ax[1,ii].set_ylim(0.90,1.1)
-        ax[1,ii].set_xscale('log')
-        ax[1,ii].set_yscale('linear')
+        ax[0,ii].axvline(0.75*knl,ls='-.',color='k',alpha=0.3)
+        ax[1,ii].axvline(0.75*knl,ls='-.',color='k',alpha=0.3)
+        #text
+        if ii==0: ax[0,ii].text(1.1*knl,25,r'$k_{\rm nl}$',color='darkgrey',\
+                       ha='left',va='center', fontdict=font)
+        ax[0,ii].text(0.025,25.,"$z={:.1f}$".format(zz), fontdict=font)
+
+
+    tmp = np.loadtxt('/global/project/projectdirs/m3127/H1mass/highres/2560-9100-fixed/fastpm_0.3333/pkm.txt').T
+    kk = tmp[0]#np.logspace(-2, 0, 1000)
+    Nk = 4*np.pi*kk[:-1]**2*np.diff(kk)*256**2
+    print(tmp[2, :-1]**-1*Nk)
+    # Tidy up the plot.
+    ax[0,0].set_ylim(12.0,7e4)
+    ax[0,0].set_yscale('log')
+    ax[1,0].set_ylim(0.90,1.1)
+    for axis in ax.flatten():
+        axis.set_xscale('log')
+        axis.set_xlim(0.02,1.)
+            
         #
     # Suppress the y-axis labels on not-column-0.
     for ii in range(1,ax.shape[1]):
         ax[0,ii].get_yaxis().set_visible(False)
         ax[1,ii].get_yaxis().set_visible(False)
     # Put on some more labels.
-    ax[0,0].legend(prop=fontmanage)
+    ax[0,1].legend(prop=fontmanage, ncol=2, loc=1)
+
     ax[1,0].set_xlabel(r'$k\quad [h\,{\rm Mpc}^{-1}]$', fontdict=font)
     ax[1,1].set_xlabel(r'$k\quad [h\,{\rm Mpc}^{-1}]$', fontdict=font)
     ax[0,0].set_ylabel(r'$P_\ell(k)\quad [h^{-3}{\rm Mpc}^3]$', fontdict=font)
