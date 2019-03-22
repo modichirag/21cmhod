@@ -110,10 +110,10 @@ def make_pkr_plot():
         ax[1,ii].plot([knl,knl],[1e-10,1e10],':',color='darkgrey')
         #cosmic variance
         kk = pkd[ww, 0]#np.logspace(-2, 0, 1000)
-        Nk = 4*np.pi*kk[:-1]**2*np.diff(kk)*bs**2
+        Nk = 4*np.pi*kk[:-1]**2*np.diff(kk)*bs**3 / (2*np.pi)**3
         print(Nk)
         ax[1,ii].fill_between(kk[:-1], 1-np.sqrt(2/Nk), 1+np.sqrt(2/Nk), 
-                              color='red',alpha=0.2)
+                              color='blue',alpha=0.1)
 
         # Tidy up the plot.
         ax[0,ii].set_xlim(0.02,1.0)
@@ -210,10 +210,10 @@ def make_pks_plot():
         ax[1,ii].fill_between([1e-5,3],[0.98,0.98],[1.02,1.02],\
                    color='darkgrey',alpha=0.5)
         kk = pkd[:, 0]#np.logspace(-2, 0, 1000)
-        Nk = 4*np.pi*kk[:-1]**2*np.diff(kk)*bs**2
+        Nk = 4*np.pi*kk[:-1]**2*np.diff(kk)*bs**3 /  (2*np.pi)**3
         print(Nk)
         ax[1,ii].fill_between(kk[:-1], 1-np.sqrt(2/Nk), 1+np.sqrt(2/Nk), 
-                              color='red',alpha=0.2)
+                              color='blue',alpha=0.1)
         
         # put on a line for knl.
         ax[0,ii].plot([knl,knl],[1e-10,1e10],':',color='darkgrey')
@@ -228,7 +228,7 @@ def make_pks_plot():
 
     tmp = np.loadtxt('/global/project/projectdirs/m3127/H1mass/highres/2560-9100-fixed/fastpm_0.3333/pkm.txt').T
     kk = tmp[0]#np.logspace(-2, 0, 1000)
-    Nk = 4*np.pi*kk[:-1]**2*np.diff(kk)*256**2
+    Nk = 4*np.pi*kk[:-1]**2*np.diff(kk)*256**3 /  (2*np.pi)**3
     print(tmp[2, :-1]**-1*Nk)
     # Tidy up the plot.
     ax[0,0].set_ylim(12.0,7e4)

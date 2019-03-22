@@ -144,9 +144,12 @@ def make_slice_plot(aa=0.2000,Npix=128,Lbox=1024.):
             #ax[ix,iy].imshow(np.arcsinh(dd.T/dscale[ii%len(dscale)]),\
             #                 aspect='equal',extent=[0,1,0,1],\
             #                 vmin=0,vmax=np.arcsinh(5.0))
-            ax[ix,iy].imshow(np.arcsinh(dd.T),\
+            #ax[ix,iy].imshow(np.arcsinh(dd.T),\
+            #                 aspect='equal',extent=[0,1,0,1],\
+            #                 vmin=0,vmax=np.arcsinh(dmaxs[ii%len(dmaxs)]), cmap='hot')
+            ax[ix,iy].imshow(np.log(1+dd.T),\
                              aspect='equal',extent=[0,1,0,1],\
-                             vmin=0,vmax=np.arcsinh(dmaxs[ii%len(dmaxs)]))
+                             vmin=0,vmax=np.log(1+dd.max()), cmap='hot')
             # Put on a scale bar.
             xmin,xmax,yval = 0.10,0.10+0.1*(1e3/Lbox),0.95
             scale_text     = r'$\mathbf{'+"{:.0f}".format(100./ss)+\
@@ -166,7 +169,7 @@ def make_slice_plot(aa=0.2000,Npix=128,Lbox=1024.):
     ax[1,0].text(0.05,0.05,r'HI',color=clab,fontweight='bold')
     # and finish up.
     plt.tight_layout()
-    plt.savefig('slices.pdf')
+    plt.savefig('../../figs/slices.pdf')
     #
 
 
