@@ -199,6 +199,6 @@ def make_bao_linratio_plot(fname):
 
 
 if __name__=="__main__":
-    make_bao_plot(figpath + 'HI_bao_%s.pdf'%model)
+    make_bao_plot(figpath + 'HI_bao_pk_%s.pdf'%model)
     make_bao_linratio_plot(figpath + 'HI_bao_linratio_%s.pdf'%model)
     #
