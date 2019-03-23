@@ -4,6 +4,10 @@ from scipy.misc import derivative
 from scipy.interpolate import InterpolatedUnivariateSpline as ius
 from scipy.integrate import quadrature
 
+import sys
+sys.path.append('../utils/')
+from tools import loginterp
+
 j0 = lambda x: spherical_jn(0, x)
 
 
@@ -31,47 +35,6 @@ outfolder += "/%s/"%model
 
 #
 
-
-def loginterp(x, y, yint = None, side = "both", lorder = 15, rorder = 15, lp = 1, rp = -1, \
-                  ldx = 1e-6, rdx = 1e-6, k=5):
-    '''return interpolating function with x, y after extrapolating them with power-law on both sides to absurd range'''   
-    if yint is None:
-        yint = ius(x, y, k = k)
-
-    if side == "both":
-        side = "lr"
-        l =lp
-        r =rp
-    lneff, rneff = 0, 0
-    niter = 0
-    while (lneff <= 0) or (lneff > 1): #motivated from priors
-        lneff = derivative(yint, x[l], dx = x[l]*ldx, order = lorder)*x[l]/y[l]
-        l +=1
-        if niter > 100: continue
-    print('Left slope = %0.3f at point '%lneff, l)
-    niter = 0
-    while (rneff < -3) or (rneff > -2):  #motivated from priors
-        rneff = derivative(yint, x[r], dx = x[r]*rdx, order = rorder)*x[r]/y[r]
-        r -= 1
-        if niter > 100: continue
-    print('Rigth slope = %0.3f at point '%rneff, r)
-
-    xl = np.logspace(-18, np.log10(x[l]), 10**6.)
-    xr = np.logspace(np.log10(x[r]), 10., 10**6.)
-    yl = y[l]*(xl/x[l])**lneff
-    yr = y[r]*(xr/x[r])**rneff
-
-    xint = x[l+1:r].copy()
-    yint = y[l+1:r].copy()
-    if side.find("l") > -1:
-        xint = np.concatenate((xl, xint))
-        yint = np.concatenate((yl, yint))
-    if side.find("r") > -1:
-        xint = np.concatenate((xint, xr))
-        yint = np.concatenate((yint, yr))
-    yint2 = ius(xint, yint, k = k)
-
-    return yint2
 
 
 def get_ilpk(aa):
@@ -109,8 +72,8 @@ if __name__=="__main__":
         ilpk = get_ilpk(aa)
 
         for i in range(r.size):
+            if i%1 == 0: print(i, r[i])
             f = lambda k: xij0f(k, r[i], ilpk)
-            xi[i] = quadrature(f, 1e-6, 1e2, maxiter=5000)[0]
-            if i%10 == 0: print(i)
+            xi[i] = quadrature(f, 1e-5, 1e2, maxiter=1000)[0]
 
         np.savetxt(outfolder + "HI_hankelxi_{:06.4f}.txt".format(aa), np.stack((r, xi)).T, header='r, xi')

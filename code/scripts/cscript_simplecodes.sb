@@ -1,13 +1,14 @@
 #!/bin/bash
 
 #SBATCH -J simphod
-#SBATCH -N 32
-#SBATCH -p regular
-#SBATCH -t 02:00:00
+#SBATCH -N 16
+#SBATCH -p debug
+#SBATCH -t 00:30:00
 #SBATCH -o ./log_slurm/simphod.o%j
 #SBATCH -L cscratch1
 #SBATCH -C haswell
 #SBATCH -D /global/homes/c/chmodi/Programs/21cm/21cmhod/code
+#SBATCH -A m3127
 
 module unload darshan
 module unload python
@@ -22,4 +23,6 @@ bcast-pip -U --no-deps https://github.com/bccp/nbodykit/archive/master.zip
 
 echo 'Finally starting'
 
-time srun -n 1024 python -u simplecodes.py
+time srun -n 512 python -u simplecodes.py -s big
+time srun -n 512 python -u simplecodes.py -s big --amp up
+time srun -n 512 python -u simplecodes.py -s big --amp down
