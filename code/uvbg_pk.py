@@ -4,24 +4,29 @@ from pmesh.pm     import ParticleMesh
 from nbodykit.lab import BigFileCatalog, BigFileMesh, MultipleSpeciesCatalog, FFTPower
 from nbodykit     import setup_logging
 from mpi4py       import MPI
-
 import HImodels
 # enable logging, we have some clue what's going on.
 setup_logging('info')
+
+sys.path.append('./utils')
+from uvbg import setupuvmesh
+
+#Set random seed
+np.random.seed(100)
+
 
 #Get model as parameter
 import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument('-m', '--model', help='model name to use', default='ModelA')
 parser.add_argument('-s', '--size', help='for small or big box', default='small')
+parser.add_argument('-p', '--profile', help='slope of profile', default=2.9, type=float)
 args = parser.parse_args()
-if args.model == None:
-    print('Specify a model name')
-    sys.exit()
 #print(args, args.model)
 
 model = args.model #'ModelD'
 boxsize = args.size
+profile = args.profile
 
 #
 #
@@ -42,14 +47,14 @@ else:
     print('Box size not understood, should be "big" or "small"')
     sys.exit()
 
-#bs, nc, ncsim, sim, prefix = 256, 128, 256, 'lowres/%d-9100-fixed'%256, 'lowres'
 
 
 # It's useful to have my rank for printing...
 pm   = ParticleMesh(BoxSize=bs, Nmesh=[nc, nc, nc])
 rank = pm.comm.rank
 comm = pm.comm
-
+uvspectra = True
+lumspectra = True
 
 #Which model & configuration to use
 modeldict = {'ModelA':HImodels.ModelA, 'ModelB':HImodels.ModelB, 'ModelC':HImodels.ModelC}
@@ -60,64 +65,9 @@ mode = modedict[model]
 ofolder = '../data/outputs/'
 
 
-params = {'5.0':[1e-2, -4, 0.75], '6.0':[1e-2, -3.5, 1]}
-
-
-def mfpathz(z):
-    return 37*((1+z)/5)**-5.4 * (1+z) #multiply 1+z to convert to comoving
-
-def moster(Mhalo,z,h=0.6776, scatter=None):
-    """
-    """
-    Minf = Mhalo/h
-    zzp1  = z/(1+z)
-    M1    = 10.0**(11.590+1.195*zzp1)
-    mM    = 0.0351 - 0.0247*zzp1
-    beta  = 1.376  - 0.826*zzp1
-    gamma = 0.608  + 0.329*zzp1
-    Mstar = 2*mM/( (Minf/M1)**(-beta) + (Minf/M1)**gamma )
-    Mstar*= Minf
-    if scatter is not None: 
-        Mstar = 10**(np.log10(Mstar) + np.random.normal(0, scatter, Mstar.size))
-    return Mstar*h
-    #
-                                                                                                      
-
-def qlf(M, zz, alpha=-2.03, beta=-4, Ms=-27.21, lphi6 = -8.94):
-    phis = 10**(lphi6 -0.47*(zz-6))
-    f1 = 10**(0.4*(alpha+1)*(M - Ms))
-    f2 = 10**(0.4*(beta+1)*(M - Ms))
-    return phis/(f1+f2)
-
-
-def mbh(mg, alpha=-3.5, beta=1, scatter=False, h=0.677):
-    m = mg/h
-    mb = 1e10 * 10**alpha * (m/1e10)**beta
-    if scatter: mb = 10**(np.log10(mb) + np.random.normal(scale=scatter, size=mb.size))
-    return mb*h
-
-
-def lq(mb, fon=0.01, eta=0.1, scatter=False, h=0.677):
-    m = mb/h
-    lsun = 3.28e26*np.ones_like(m)
-    if scatter: eta = np.random.lognormal(eta, scatter, m.size)
-    indices = np.random.choice(np.arange(m.size).astype(int), replace=False, size=int(m.size*(1-fon)))
-    lsun[indices] = 0 
-    return 3.3e4*eta*m *lsun
-
-
-def modulateHI(pos, mfid, uvmesh, layout, alpha=2.9, kappa=None):
-    if kappa is None: kappa = (1-2*alpha)/alpha
-    uvmean = uvmesh.cmean()
-    uvx = uvmesh.readout(pos, layout=layout)
-    index = (3-alpha)/alpha/kappa
-    mnew = mfid * (uvx / uvmean)**index
-    return mnew
-
-
 
     
-def calc_bias(aa,h1mesh,suff, fname):
+def calc_bias(aa,h1mesh, outfolder, fname):
     '''Compute the bias(es) for the HI'''
 
     if rank==0: print('Calculating bias')
@@ -163,8 +113,8 @@ def calc_bias(aa,h1mesh,suff, fname):
 
 if __name__=="__main__":
     if rank==0: print('Starting')
-    suff='-m1_00p3mh-alpha-0p8-subvol'
-    outfolder = ofolder + suff[1:]
+    suff='m1_00p3mh-alpha-0p8-subvol'
+    outfolder = ofolder + suff
     if bs == 1024: outfolder = outfolder + "-big"
     outfolder += "/%s/"%modelname
     if rank == 0: print(outfolder)
@@ -175,63 +125,24 @@ if __name__=="__main__":
     #for aa in alist:
     for zz in [6.0, 5.0]:
         aa = 1/(1+zz)
-        if rank == 0: print('\n ############## Redshift = %0.2f ############## \n'%(1/aa-1))
 
-        halocat = BigFileCatalog(scratchyf + sim+ '/fastpm_%0.4f//'%aa, dataset='LL-0.200')
-        mp = halocat.attrs['MassTable'][1]*1e10
-        halocat['Mass'] = halocat['Length'].compute() * mp
-        cencat = BigFileCatalog(scratchcm + sim+'/fastpm_%0.4f/cencat'%aa+suff)
-        satcat = BigFileCatalog(scratchcm + sim+'/fastpm_%0.4f/satcat'%aa+suff)
-        #
-
-        HImodelz = HImodel(aa)
-        halocat['HImass'], cencat['HImass'], satcat['HImass'] = HImodelz.assignHI(halocat, cencat, satcat)
-
-        switchon = 0.01
-        censize, satsize = cencat['Mass'].size, satcat['Mass'].size
-        cenid = np.random.choice(np.arange(censize), size = int(censize*switchon))
-        satid = np.random.choice(np.arange(satsize), size = int(satsize*switchon))
-
-        alpha, beta = params['%0.1f'%zz][1:]
-        if rank == 0: print('Parameters are ', alpha, beta)
-        cencat['blackhole'] = mbh(moster(cencat['Mass'].compute(), z=zz, scatter=0.3), alpha, beta, scatter=0.3)
-        satcat['blackhole'] = mbh(moster(satcat['Mass'].compute(), z=zz, scatter=0.3), alpha, beta, scatter=0.3)
-        cencat['luminosity'] = lq(cencat['blackhole'], fon=switchon, eta=0.1, scatter=0.3)
-        satcat['luminosity'] = lq(satcat['blackhole'], fon=switchon, eta=0.1, scatter=0.3)
-
-        clayout = pm.decompose(cencat['Position'])
-        slayout = pm.decompose(satcat['Position'])
-        cmesh = pm.paint(cencat['Position'], mass=cencat['luminosity'], layout=clayout)
-        smesh = pm.paint(satcat['Position'], mass=satcat['luminosity'], layout=slayout)
-        lmesh = cmesh + smesh
+        cats, meshes = setupuvmesh(zz, suff=suff, sim=sim, profile=profile, pm=pm)
+        cencat, satcat = cats
+        h1meshfid, h1mesh, lmesh, uvmesh = meshes
 
 
-        mfpath = mfpathz(zz)
-        meshc = lmesh.r2c()
-        kmesh = sum(i**2 for i in meshc.x)**0.5
-        wt = np.arctan(kmesh *mfpath)/kmesh/mfpath
-        wt[kmesh == 0] = 1
-        meshc*= wt
-        uvmesh = meshc.c2r()
-        #print(uvmesh.cmean())
-        calc_bias(aa, uvmesh/uvmesh.cmean(), suff, fname='UVbg')
+        if lumspectra : calc_bias(aa,lmesh/lmesh.cmean(), outfolder, fname='Lum')
 
-        #
-        cencat['HIuvmass'] = modulateHI(cencat['Position'], cencat['HImass'], uvmesh, clayout)
-        satcat['HIuvmass'] = modulateHI(satcat['Position'], satcat['HImass'], uvmesh, slayout)
-        
-        cmesh = pm.paint(cencat['Position'], mass=cencat['HIuvmass'], layout=clayout)
-        smesh = pm.paint(satcat['Position'], mass=satcat['HIuvmass'], layout=slayout)
-        h1mesh = cmesh + smesh
-        calc_bias(aa, h1mesh/h1mesh.cmean(), suff, fname='HI_UVbg')
+        if uvspectra: calc_bias(aa, uvmesh/uvmesh.cmean(), outfolder, fname='UVbg')
+
+        fname = 'HI_UVbg_ap%dp%d'%((profile*10)//10, (profile*10)%10)
+        calc_bias(aa, h1mesh/h1mesh.cmean(), outfolder, fname=fname)
 
         ratio = (cencat['HIuvmass']/cencat['HImass']).compute()
-        print(rank, ratio[:10])
-        print(rank, '%0.3f'%ratio.max(), '%0.3f'%ratio.min(), '%0.3f'%ratio.mean(), '%0.3f'%ratio.std())
+        print(rank, 'Cen', '%0.3f'%ratio.max(), '%0.3f'%ratio.min(), '%0.3f'%ratio.mean(), '%0.3f'%ratio.std())
 
         ratio = (satcat['HIuvmass']/satcat['HImass']).compute()
-        print(rank, ratio[:10])
-        print(rank, '%0.3f'%ratio.max(), '%0.3f'%ratio.min(), '%0.3f'%ratio.mean(), '%0.3f'%ratio.std())
+        print(rank, 'Sat', '%0.3f'%ratio.max(), '%0.3f'%ratio.min(), '%0.3f'%ratio.mean(), '%0.3f'%ratio.std())
 
 #        uvpreview = uvmesh.preview(Nmesh=128)
 #        if rank == 0:
