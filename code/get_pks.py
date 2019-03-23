@@ -14,6 +14,7 @@ import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument('-m', '--model', help='model name to use')
 parser.add_argument('-s', '--size', help='for small or big box', default='small')
+parser.add_argument('-a', '--amp', help='amplitude for up/down sigma 8', default=None)
 args = parser.parse_args()
 if args.model == None:
     print('Specify a model name')
@@ -22,7 +23,7 @@ if args.model == None:
 
 model = args.model #'ModelD'
 boxsize = args.size
-
+amp = args.amp
 #
 #
 #Global, fixed things
@@ -31,7 +32,7 @@ scratchcm = '/global/cscratch1/sd/chmodi/m3127/H1mass/'
 project  = '/project/projectdirs/m3127/H1mass/'
 cosmodef = {'omegam':0.309167, 'h':0.677, 'omegab':0.048}
 alist    = [0.1429,0.1538,0.1667,0.1818,0.2000,0.2222,0.2500,0.2857,0.3333]
-#alist = alist[5:]
+alist = alist[-1:]
 
 #Parameters, box size, number of mesh cells, simulation, ...
 if boxsize == 'small':
@@ -42,12 +43,19 @@ else:
     print('Box size not understood, should be "big" or "small"')
     sys.exit()
 
+if amp is not None:
+    if amp == 'up' or amp == 'dn':
+        sim = sim + '-%s'%amp
+    else:
+        print('Amplitude should be "up" or "dn". Given : ', amp)
+        sys.exit()
+        
 
 # It's useful to have my rank for printing...
 pm   = ParticleMesh(BoxSize=bs, Nmesh=[nc, nc, nc])
 rank = pm.comm.rank
 comm = pm.comm
-
+if rank == 0: print(args)
 
 #Which model & configuration to use
 modeldict = {'ModelA':HImodels.ModelA, 'ModelB':HImodels.ModelB, 'ModelC':HImodels.ModelC}
@@ -215,6 +223,7 @@ if __name__=="__main__":
     suff='-m1_00p3mh-alpha-0p8-subvol'
     outfolder = ofolder + suff[1:]
     if bs == 1024: outfolder = outfolder + "-big"
+    if amp is not None: outfolder = outfolder + "-%s"%amp
     outfolder += "/%s/"%modelname
     if rank == 0: print(outfolder)
     try: 

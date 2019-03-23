@@ -10,8 +10,20 @@ sys.path.append('./utils')
 import tools, dohod             # 
 from time import time
 
+#Get model as parameter
+import argparse
+parser = argparse.ArgumentParser()
+parser.add_argument('-s', '--size', help='for small or big box', default='small')
+parser.add_argument('-a', '--amp', help='amplitude for up/down sigma 8', default=None)
+parser.add_argument('-r', '--res', help='resolution', default='high')
+args = parser.parse_args()
+
+boxsize = args.size
+amp = args.amp
+res = args.res
+
 #Global, fixed things
-scratch = '/global/cscratch1/sd/yfeng1/m3127/'
+scratchyf = '/global/cscratch1/sd/yfeng1/m3127/'
 project = '/project/projectdirs/m3127/H1mass/'
 myscratch = '/global/cscratch1/sd/chmodi/m3127/H1mass/'
 cosmodef = {'omegam':0.309167, 'h':0.677, 'omegab':0.048}
@@ -20,24 +32,30 @@ aafiles = [0.1429, 0.1538, 0.1667, 0.1818, 0.2000, 0.2222, 0.2500, 0.2857, 0.333
 zzfiles = [round(tools.atoz(aa), 2) for aa in aafiles]
 
 #Paramteres
-#Maybe set up to take in as args file?
-bs, nc = 256, 256
-#ncsim, sim, prefix = 256, 'lowres/%d-9100-fixed'%256, 'lowres'
-ncsim, sim, prefix = 2560, 'highres/%d-9100-fixed'%2560, 'highres'
-#bs,nc,ncsim = 1024, 1024, 10240
-#sim,prefix  = 'highres/%d-9100-fixed'%ncsim, 'highres'
+if res == 'high':
+    if boxsize == 'small':
+        bs, nc, ncsim, sim, prefix = 256, 512, 2560, 'highres/%d-9100-fixed'%2560, 'highres'
+    elif boxsize == 'big':
+        bs, nc, ncsim, sim, prefix = 1024, 1024, 10240, 'highres/%d-9100-fixed'%10240, 'highres'
+else:
+    bs, nc, ncsim, sim, prefix = 256, 256, 256, 'lowres/%d-9100-fixed'%256, 'lowres'
 
-# It's useful to have my rank for printing...                                                                                                                                                                                                                                             
+if amp is not None:
+    if amp == 'up' or amp == 'dn': sim = sim + '-%s'%amp
+    else: print('Amplitude not understood. Should be "up" or "dn". Given : {}. Fallback to fiducial'.format(amp))
+
+# It's useful to have my rank for printing... 
+
 pm   = ParticleMesh(BoxSize=bs, Nmesh=[nc, nc, nc])
 rank = pm.comm.rank
 comm = pm.comm
-
+if rank == 0: print(args)
 
 
 def readincatalog(aa, matter=False):
 
-    if matter: dmcat = BigFileCatalog(scratch + sim + '/fastpm_%0.4f/'%aa, dataset='1')
-    halocat = BigFileCatalog(scratch + sim + '/fastpm_%0.4f/'%aa, dataset='LL-0.200')
+    if matter: dmcat = BigFileCatalog(scratchyf + sim + '/fastpm_%0.4f/'%aa, dataset='1')
+    halocat = BigFileCatalog(scratchyf + sim + '/fastpm_%0.4f/'%aa, dataset='LL-0.200')
     mp = halocat.attrs['MassTable'][1]*1e10
     print('Mass of particle is = %0.2e'%mp)
     halocat['Mass'] = halocat['Length'] * mp
@@ -91,31 +109,32 @@ def assignH1mass(aa, save=True):
         print('Halos saved at path\n%s'%ofolder)
 
 
-def measurepk(nc=nc, dpath=myscratch):
-    '''plot the power spectrum of halos and H1 on 'nc' grid'''
+def measurepk(nc=nc, dpath=scratchyf):
+    '''plot the power spectrum of halos on 'nc' grid'''
 
     pm = ParticleMesh(BoxSize = bs, Nmesh = [nc, nc, nc])
 
     for i, aa in enumerate(aafiles):
-        fout = "../data/outputs/halos/HI_pks_1d_{:6.4f}.txt".format(aa))
         zz = zzfiles[i]
-        print('redshift = ', zz)
-        dm = BigFileMesh(dpath + sim + '/fastpm_%0.4f/'%aa + '/dmesh_N%04d'%nc, '1').paint()
-        rank = dm.comm.rank
-        halos = BigFileCatalog(dpath + sim + '/fastpm_%0.4f/halocat/'%aa)
-        hmass = halos["Mass"].compute()
+        if rank == 0: print('redshift = ', zz)
+        if ncsim == 10240:
+            dm = BigFileMesh(scratchyf+sim+'/fastpm_%0.4f/'%aa+\
+                            '/1-mesh/N%04d'%nc,'').paint()
+        else:  dm = BigFileMesh(project+sim+'/fastpm_%0.4f/'%aa+\
+                        '/dmesh_N%04d/1/'%nc,'').paint()
+        #dm = BigFileMesh(project + sim + '/fastpm_%0.4f/'%aa + '/dmesh_N%04d'%nc, '1').paint()
+        halos = BigFileCatalog(scratchyf + sim + '/fastpm_%0.4f/'%aa, dataset='LL-0.200')
+        mp = halos.attrs['MassTable'][1]*1e10
+        if rank == 0: print('Mass of particle is = %0.2e'%mp)
+        hmass = halos["Length"].compute()*mp
         hpos = halos['Position'].compute()
+        layout = pm.decompose(hpos)
 
-#        rankweight       = sum([cat[weight].sum().compute() for cat in catalogs])
-#        totweight        = comm.allreduce(rankweight)
-#        for cat in catalogs: cat[weight] /= totweight/float(nc)**3            
-#        layout = pm.decompose(hpos)
-#        
-        print("paint")
+        if rank == 0: print("paint")
         hpmesh = pm.paint(hpos, layout=layout)
         hmesh = pm.paint(hpos, mass=hmass, layout=layout)
-        print(rank, dm.cmean(), hmesh.cmean(), hpos.cmean())
-        print("measure powers")
+        print(rank, dm.cmean(), hmesh.cmean(), hpmesh.cmean())
+
         pkm = FFTPower(dm/dm.cmean(), mode='1d').power
         pkh = FFTPower(hmesh/hmesh.cmean(), mode='1d').power
         pkhp = FFTPower(hpmesh/hpmesh.cmean(), mode='1d').power
@@ -129,17 +148,18 @@ def measurepk(nc=nc, dpath=myscratch):
                 k, p, modes = binstat['k'].real, binstat['power'].real, binstat['modes'].real
                 np.savetxt(path, np.stack((k, p, modes), axis=1), header=header)
 
-#        inb = 6 
-#        biases = [(pkh[1:inb]['power']/pkm[1:inb]['power']).mean()**0.5, (pkhp[1:inb]['power']/pkm[1:inb]['power']).mean()**0.5, (pkhm[1:inb]['power']/pkm[1:inb]['power']).mean(), (pkhpm[1:inb]['power']/pkm[1:inb]['power']).mean()]
-#        #print(biases)
-#
             
+        ofolder = "../data/outputs/halos/{}/".format(sim)
         if rank == 0:
-            savebinned(ofolder+'pkhpos.txt', pkhp, header='k, P(k), Nmodes')
-            savebinned(ofolder+'pkhmass.txt', pkh, header='k, P(k), Nmodes')  
-            savebinned(ofolder+'pkm.txt', pkm, header='k, P(k), Nmodes')
-            savebinned(ofolder+'pkhposxm.txt', pkhpm, header='k, P(k), Nmodes')
-            savebinned(ofolder+'pkhmassxm.txt', pkhm, header='k, P(k), Nmodes')
+            print(ofolder)
+            try: 
+                os.makedirs(ofolder)
+            except : pass
+            savebinned(ofolder+'pkhp_%0.4f.txt'%aa, pkhp, header='k, P(k), Nmodes')
+            savebinned(ofolder+'pkhm_%0.4f.txt'%aa, pkh, header='k, P(k), Nmodes')  
+            savebinned(ofolder+'pkd_%0.4f.txt'%aa, pkm, header='k, P(k), Nmodes')
+            savebinned(ofolder+'pkhpxd_%0.4f.txt'%aa, pkhpm, header='k, P(k), Nmodes')
+            savebinned(ofolder+'pkhmxd_%0.4f.txt'%aa, pkhm, header='k, P(k), Nmodes')
 
 
 
@@ -233,13 +253,13 @@ if __name__=="__main__":
 
     measurepk(nc)        
     for aa in aafiles:
-        pass
-        #print(aa)
+        if rank == 0: print(aa)
         #readincatalog(aa=aa)
         #assignH1mass(aa=aa)
-        #savecatalogmesh(bs=bs, nc=256, aa=aa)
+        #savecatalogmesh(bs=bs, nc=nc, aa=aa)
+
     #edges = np.logspace(np.log10(0.5), np.log10(20), 10)
-    # use 1000 particles up to (20 Mpc/h) ** 3 volume;
-    # looks good enough?
+    ## use 1000 particles up to (20 Mpc/h) ** 3 volume;
+    ## looks good enough?
     #measurexi(N=1000, edges=edges)
     #make_galcat(aa=0.2000)
