@@ -40,7 +40,6 @@ zzfiles = [round(atoz(aa), 2) for aa in alist]
 suff='m1_00p3mh-alpha-0p8-subvol'
 ofolder = '../data/outputs/'
 outfolder = ofolder + suff
-outfolder += "/%s/"%model
 
 
 #Parameters, box size, number of mesh cells, simulation, ...
@@ -60,6 +59,7 @@ if amp is not None:
         sys.exit()
 
 if bs == 1024: outfolder = outfolder + "-big"
+outfolder += "/%s/"%model
 
 
 
@@ -82,12 +82,18 @@ if __name__=="__main__":
     pmsmall = ParticleMesh(BoxSize = bs/ncube, Nmesh = [cube_size, cube_size, cube_size], dtype=np.float32, comm=MPI.COMM_SELF)
     gridsmall = pmsmall.generate_uniform_particle_grid(shift=0)
 
-    for zz in [5.0]:
+    for zz in [6.0]:
         aa = 1/(1+zz)
         cats, meshes = setupuvmesh(zz, suff=suff, sim=sim, pm=pm, profile=profile)
         cencat, satcat = cats
         h1meshfid, h1mesh, lmesh, uvmesh = meshes
-        names = ['h1fid', 'h1new', 'lum', 'uv']
+        if ncsim == 10240:
+            dm = BigFileMesh(scratchyf+sim+'/fastpm_%0.4f/'%aa+\
+                            '/1-mesh/N%04d'%nc,'').paint()
+        else:  dm = BigFileMesh(project+sim+'/fastpm_%0.4f/'%aa+\
+                        '/dmesh_N%04d/1/'%nc,'').paint()
+        meshes = [dm, h1meshfid, h1mesh, lmesh, uvmesh]
+        names = ['dm', 'h1fid', 'h1new', 'lum', 'uv']
         
 
         if rank == 0 : print('\nMeshes read\n')
@@ -98,7 +104,7 @@ if __name__=="__main__":
         maxload = max(np.array([len(i) for i in bindexsplit]))
 
         indices = np.zeros((ncube**3, 3))
-        totals = np.zeros((ncube**3, 4))
+        totals = np.zeros((ncube**3, len(names)))
 
         for ibindex in range(maxload):
             if rank == 0: print('For index = %d'%(int(ibindex)))
@@ -139,8 +145,8 @@ if __name__=="__main__":
             totals = np.concatenate([totals[ii][bindexsplit[ii]] for ii in range(wsize)], axis=0)
             tosave = np.concatenate((indices, totals), axis=1)
             #print(tosave)
-            header  = 'ix, iy, iz, h1fid, h1new, lum, uv'
-            fmt = '%d %d %d %.5e %.5e %.5e %.5e'
+            header  = 'ix, iy, iz, dm, h1fid, h1new, lum, uv'
+            fmt = '%d %d %d %.5e %.5e %.5e %.5e %.5e'
             fname = outfolder + 'scatter_n{:02d}_ap{:1.0f}p{:1.0f}_{:6.4f}.txt'.format(ncube, (profile*10)//10, (profile*10)%10, aa)
             print('Data saved to file {:s}'.format(fname))
             np.savetxt(fname, tosave, header=header, fmt=fmt)
