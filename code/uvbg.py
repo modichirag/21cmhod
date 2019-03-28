@@ -25,7 +25,11 @@ modeldict = {'ModelA':HImodels.ModelA, 'ModelB':HImodels.ModelB, 'ModelC':HImode
 modedict = {'ModelA':'galaxies', 'ModelB':'galaxies', 'ModelC':'halos'} 
 
 
-mbhparams = {'5.0':[1e-2, -4, 0.75], '6.0':[1e-2, -3.5, 1]}
+mbhparams = {'3.5':[1e-2, -3.65, 0.7], '4.0':[1e-2, -3.6, 0.8], '4.5':[1e-2, -3.7, 0.8],
+             '5.0':[1e-2, -4, 0.75], '6.0':[1e-2, -3.5, 1]}
+
+stellarback = {'3.0': 1., '3.5': 2.0,  '4.0':4.0, '4.5': 7.,
+               '5.0': 10., '6.0':100.}
 
 
 def mfpathz(z):
@@ -82,7 +86,8 @@ def modulateHI(pos, mfid, uvmesh, layout, alpha, kappa=None):
     return mnew
 
 
-def setupuvmesh(zz, suff, sim, profile, pm, model='ModelA', switchon=0.01, eta=0.1, galscatter=0.3, bhscatter=0.3, lumscatter=0.3):
+def setupuvmesh(zz, suff, sim, profile, pm, model='ModelA', switchon=0.01, eta=0.1, galscatter=0.3, bhscatter=0.3, lumscatter=0.3, 
+                stellar=False):
     
     rank = pm.comm.rank
     aa = 1/(1+zz)
@@ -128,6 +133,10 @@ def setupuvmesh(zz, suff, sim, profile, pm, model='ModelA', switchon=0.01, eta=0
     wt[kmesh == 0] = 1
     meshc*= wt
     uvmesh = meshc.c2r()
+
+    if stellar : 
+        uvstellar = stellarback['{:.1f}'.format(zz)]*uvmesh.cmean()
+        uvmesh += uvstellar
     #print(uvmesh.cmean())
     #if uvspectra: calc_bias(aa, uvmesh/uvmesh.cmean(), suff, fname='UVbg')
 

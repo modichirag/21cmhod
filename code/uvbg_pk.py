@@ -21,12 +21,14 @@ parser = argparse.ArgumentParser()
 parser.add_argument('-m', '--model', help='model name to use', default='ModelA')
 parser.add_argument('-s', '--size', help='for small or big box', default='small')
 parser.add_argument('-p', '--profile', help='slope of profile', default=2.9, type=float)
+parser.add_argument('-g', '--galaxy', help='add mean stellar background', default=False, type=bool)
 args = parser.parse_args()
 #print(args, args.model)
 
 model = args.model #'ModelD'
 boxsize = args.size
 profile = args.profile
+stellar = args.galaxy
 
 #
 #
@@ -123,26 +125,31 @@ if __name__=="__main__":
     except : pass
 
     #for aa in alist:
-    for zz in [6.0, 5.0]:
+    for zz in [4.0, 3.5]:
         aa = 1/(1+zz)
 
-        cats, meshes = setupuvmesh(zz, suff=suff, sim=sim, profile=profile, pm=pm)
+        cats, meshes = setupuvmesh(zz, suff=suff, sim=sim, profile=profile, pm=pm, stellar=stellar)
         cencat, satcat = cats
         h1meshfid, h1mesh, lmesh, uvmesh = meshes
 
 
-        if lumspectra : calc_bias(aa,lmesh/lmesh.cmean(), outfolder, fname='Lum')
+        lumname, uvname = 'uvbg/Lum', 'uvbg/UVbg'
+        h1name = 'uvbg/HI_UVbg_ap%dp%d'%((profile*10)//10, (profile*10)%10)
+        if stellar: uvname += '_star'
+        if stellar: h1name += '_star'
 
-        if uvspectra: calc_bias(aa, uvmesh/uvmesh.cmean(), outfolder, fname='UVbg')
+        if lumspectra : calc_bias(aa,lmesh/lmesh.cmean(), outfolder, fname=lumname)
 
-        fname = 'HI_UVbg_ap%dp%d'%((profile*10)//10, (profile*10)%10)
-        calc_bias(aa, h1mesh/h1mesh.cmean(), outfolder, fname=fname)
+        if uvspectra: calc_bias(aa, uvmesh/uvmesh.cmean(), outfolder, fname=uvname)
+
+        calc_bias(aa, h1mesh/h1mesh.cmean(), outfolder, fname=h1name)
 
         ratio = (cencat['HIuvmass']/cencat['HImass']).compute()
         print(rank, 'Cen', '%0.3f'%ratio.max(), '%0.3f'%ratio.min(), '%0.3f'%ratio.mean(), '%0.3f'%ratio.std())
 
         ratio = (satcat['HIuvmass']/satcat['HImass']).compute()
         print(rank, 'Sat', '%0.3f'%ratio.max(), '%0.3f'%ratio.min(), '%0.3f'%ratio.mean(), '%0.3f'%ratio.std())
+
 
 #        uvpreview = uvmesh.preview(Nmesh=128)
 #        if rank == 0:
