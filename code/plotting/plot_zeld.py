@@ -43,6 +43,8 @@ tb = '../..//theory/'
 
 
 
+
+
 def make_pkr_plot():
     """Does the work of making the real-space P(k) figure."""
     zlist = [2.000,6.000]
@@ -79,6 +81,7 @@ def make_pkr_plot():
         ax[0,ii].plot(pkd[:,0],pkm,'C0-',alpha=0.75, lw=1.2, label=r'$P_{\rm m-m}$')
         ax[0,ii].plot(pkd[:,0],pkx,'C1-',alpha=0.75, lw=1.2, label=r'$P_{\rm HI-m}$')
         ax[0,ii].plot(pkd[:,0],pkh,'C2-',alpha=0.75, lw=1.2, label=r'$P_{\rm HI-HI}$')
+
         # Now Zeldovich.
         #pkz = np.loadtxt("pkzel_{:6.4f}.txt".format(aa))
         pkz = np.loadtxt(tb+"zeld_{:6.4f}.pkr".format(aa))
@@ -104,16 +107,25 @@ def make_pkr_plot():
         ax[1,ii].fill_between([1e-5,3],[0.98,0.98],[1.02,1.02],\
                    color='darkgrey',alpha=0.5)
         # put on a line for knl.
-        ax[0,ii].plot([knl,knl],[1e-10,1e10],':',color='darkgrey')
-        ax[0,ii].text(0.9*knl,1e4,r'$k_{\rm nl}$',color='darkgrey',\
-                       ha='right',va='center', fontdict=font)
-        ax[1,ii].plot([knl,knl],[1e-10,1e10],':',color='darkgrey')
+        ax[0,ii].plot([knl,knl],[1e-10,1e10],'-.',color='k', alpha=0.2)
+        ax[1,ii].plot([knl,knl],[1e-10,1e10],'-.',color='k', alpha=0.2)
+        ax[0,ii].axvline(0.75*knl,ls=':',color='k',alpha=0.2)
+        ax[1,ii].axvline(0.75*knl,ls=':',color='k',alpha=0.2)
+        if ii == 0:ax[0,ii].text(1.1*knl,1e4,r'$k_{\rm nl}$',color='darkgrey',\
+                       ha='left',va='center', fontdict=font)
+
         #cosmic variance
-        kk = pkd[ww, 0]#np.logspace(-2, 0, 1000)
+        ff = open(db + 'HI_pks_1d_{:06.4f}.txt'.format(aa))
+        tmp = ff.readline()
+        sn = float(tmp.split('=')[1].split('.\n')[0])
+        print('shotnoise = ', sn)
+        kk = pkd[:, 0]#np.logspace(-2, 0, 1000)
         Nk = 4*np.pi*kk[:-1]**2*np.diff(kk)*bs**3 / (2*np.pi)**3
-        print(Nk)
-        ax[1,ii].fill_between(kk[:-1], 1-np.sqrt(2/Nk), 1+np.sqrt(2/Nk), 
-                              color='blue',alpha=0.1)
+        std = (2/Nk *(pkh[:-1]+sn)**2)**0.5/pkh[:-1]
+        #std = np.sqrt(2/Nk)
+        #print(Nk)
+        ax[1,ii].fill_between(kk[:-1], 1-std, 1+std, 
+                              color='magenta',alpha=0.1)
 
         # Tidy up the plot.
         ax[0,ii].set_xlim(0.02,1.0)
@@ -209,27 +221,35 @@ def make_pks_plot():
                    color='lightgrey',alpha=0.25)
         ax[1,ii].fill_between([1e-5,3],[0.98,0.98],[1.02,1.02],\
                    color='darkgrey',alpha=0.5)
+        #cosmic variance
+        ff = open(db + 'HI_pks_1d_{:06.4f}.txt'.format(aa))
+        tmp = ff.readline()
+        sn = float(tmp.split('=')[1].split('.\n')[0])
+        print(zz, 'shotnoise = ', sn)
         kk = pkd[:, 0]#np.logspace(-2, 0, 1000)
-        Nk = 4*np.pi*kk[:-1]**2*np.diff(kk)*bs**3 /  (2*np.pi)**3
-        print(Nk)
-        ax[1,ii].fill_between(kk[:-1], 1-np.sqrt(2/Nk), 1+np.sqrt(2/Nk), 
-                              color='blue',alpha=0.1)
+        Nk = 4*np.pi*kk[:-1]**2*np.diff(kk)*bs**3 / (2*np.pi)**3
+        std = (2/Nk *((pk0[:-1]+sn)**2 + pk2[:-1]**2/5))**0.5 / pk0[:-1]
+        std2 = (2/Nk)**0.5
+        #print(np.vstack((kk[:-1], std/std2)))
+        ax[1,ii].fill_between(kk[:-1], 1-std, 1+std, 
+                              color='magenta',alpha=0.1)
         
         # put on a line for knl.
-        ax[0,ii].plot([knl,knl],[1e-10,1e10],':',color='darkgrey')
-        ax[1,ii].plot([knl,knl],[1e-10,1e10],':',color='darkgrey')
-        ax[0,ii].axvline(0.75*knl,ls='-.',color='k',alpha=0.3)
-        ax[1,ii].axvline(0.75*knl,ls='-.',color='k',alpha=0.3)
+        ax[0,ii].plot([knl,knl],[1e-10,1e10],'-.',color='k', alpha=0.2)
+        ax[1,ii].plot([knl,knl],[1e-10,1e10],'-.',color='k', alpha=0.2)
+        ax[0,ii].axvline(0.75*knl,ls=':',color='k',alpha=0.2)
+        ax[1,ii].axvline(0.75*knl,ls=':',color='k',alpha=0.2)
         #text
         if ii==0: ax[0,ii].text(1.1*knl,25,r'$k_{\rm nl}$',color='darkgrey',\
                        ha='left',va='center', fontdict=font)
         ax[0,ii].text(0.025,25.,"$z={:.1f}$".format(zz), fontdict=font)
 
 
-    tmp = np.loadtxt('/global/project/projectdirs/m3127/H1mass/highres/2560-9100-fixed/fastpm_0.3333/pkm.txt').T
-    kk = tmp[0]#np.logspace(-2, 0, 1000)
-    Nk = 4*np.pi*kk[:-1]**2*np.diff(kk)*256**3 /  (2*np.pi)**3
-    print(tmp[2, :-1]**-1*Nk)
+##    tmp = np.loadtxt('/global/project/projectdirs/m3127/H1mass/highres/2560-9100-fixed/fastpm_0.3333/pkm.txt').T
+##    kk = tmp[0]#np.logspace(-2, 0, 1000)
+##    Nk = 4*np.pi*kk[:-1]**2*np.diff(kk)*256**3 /  (2*np.pi)**3
+##    print(tmp[2, :-1]**-1*Nk)
+##
     # Tidy up the plot.
     ax[0,0].set_ylim(12.0,7e4)
     ax[0,0].set_yscale('log')
