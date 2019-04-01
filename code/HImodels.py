@@ -383,6 +383,19 @@ class ModelC(ModelA):
         self.mcut = 1e10
         self.normhalo = 3.5e6*(1+1/self.zz) 
 
+
+    def derivate(self, param, delta):
+        if param == 'alpha':
+            self.alp = (1+delta)*self.alp
+        elif param == 'mcut':
+            self.mcut = 10**( (1+delta)*np.log10(self.mcut))
+        elif param == 'norm':
+            self.mcut = 10**( (1+delta)*np.log10(self.normhalo))
+        else:
+            print('Parameter to vary not recongnized. Should be "alpha", "mcut" or "norm"')
+            
+
+
     def assignHI(self, halocat, cencat, satcat):
         mHIhalo = self.assignhalo(halocat['Mass'].compute())
         mHIsat = self.assignsat(satcat['Mass'].compute())
