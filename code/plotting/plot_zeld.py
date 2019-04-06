@@ -48,12 +48,17 @@ tb = '../..//theory/'
 def make_pkr_plot():
     """Does the work of making the real-space P(k) figure."""
     zlist = [2.000,6.000]
-    #b1lst = [0.938,2.788]
-    #b2lst = [0.400,5.788]
-    #alpha = [1.663,0.138]
-    b1lst = [0.900,2.750]
-    b2lst = [0.800,6.250]
-    alpha = [1.500,0.145]
+    #    b1lst = [0.900,2.750]
+    #    b2lst = [0.800,6.250]
+    #    alpha = [1.500,0.145]
+    #
+    b1lst = [0.920,2.750]
+    b2lst = [-.125,5.788]
+    bnlst = [3.713,1.00]
+    alpha = [1.500,0.150]
+    #bnlst = [3.613,0.650]
+    #alpha = [1.500,0.145]
+
 
     # Now make the figure.
     fig,ax = plt.subplots(2,2,figsize=(6,4),sharex=True,\
@@ -86,10 +91,20 @@ def make_pkr_plot():
         #pkz = np.loadtxt("pkzel_{:6.4f}.txt".format(aa))
         pkz = np.loadtxt(tb+"zeld_{:6.4f}.pkr".format(aa))
         kk  = pkz[:,0]
-        pzh = (1+alpha[ii]*kk**2)*pkz[:,1]+b1*pkz[:,2]+b2*pkz[:,3]+\
+
+##        pzh = (1+alpha[ii]*kk**2)*pkz[:,1]+b1*pkz[:,2]+b2*pkz[:,3]+\
+##              b1**2*pkz[:,4]+b2**2*pkz[:,5]+b1*b2*pkz[:,6]
+##        pzx = (1+alpha[ii]*kk**2)*pkz[:,1]+0.5*b1*pkz[:,2]+0.5*b2*pkz[:,3]
+##        pzm = (1+alpha[ii]*kk**2)*pkz[:,1]
+        
+        alh = alpha[ii] + bnlst[ii]
+        alx = alpha[ii] + 0.5*bnlst[ii]
+        alm = alpha[ii]
+        pzh = (1+alh*kk**2)*pkz[:,1]+b1*pkz[:,2]+b2*pkz[:,3]+\
               b1**2*pkz[:,4]+b2**2*pkz[:,5]+b1*b2*pkz[:,6]
-        pzx = (1+alpha[ii]*kk**2)*pkz[:,1]+0.5*b1*pkz[:,2]+0.5*b2*pkz[:,3]
-        pzm = (1+alpha[ii]*kk**2)*pkz[:,1]
+        pzx = (1+alx*kk**2)*pkz[:,1]+0.5*b1*pkz[:,2]+0.5*b2*pkz[:,3]
+        pzm = (1+alm*kk**2)*pkz[:,1]
+
         ax[0,ii].plot(kk[kk<knl],pzm[kk<knl],'C0--', lw=2.2)
         ax[0,ii].plot(kk[kk<knl],pzx[kk<knl],'C1--', lw=2.2)
         ax[0,ii].plot(kk[kk<knl],pzh[kk<knl],'C2--', lw=2.2)
@@ -293,5 +308,5 @@ def make_pks_plot():
 
 if __name__=="__main__":
     make_pkr_plot()
-    make_pks_plot()
+    #make_pks_plot()
     #

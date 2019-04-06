@@ -33,7 +33,7 @@ mf = massfunc.Mass_Func('../../data/pk_Planck2018BAO_matterpower_z000.dat', M=om
 #
 import argparse
 parser = argparse.ArgumentParser()
-parser.add_argument('-s', '--size', help='which box size simulation', default='small')
+parser.add_argument('-s', '--size', help='which box size simulation', default='big')
 args = parser.parse_args()
 boxsize = args.size
 
@@ -59,7 +59,7 @@ def make_mf_plot(fname, fsize=13):
     # Now make the figure.
 
     fig,ax = plt.subplots(1,2,figsize=(7, 3))
-
+    ax = ax[::-1]
 
     for iz, zz in enumerate(zlist):
         aa  = 1.0/(1.0+zz)
@@ -78,7 +78,7 @@ def make_mf_plot(fname, fsize=13):
         diff = mhigh-mlow
         mff = nn/bs**3/diff/np.log(10)
         ax[1].plot(np.log10(mm), np.log10(mff), 'C%do'%iz, label='$z = %.1f$'%zz, markersize=3)
-        if iz == 0: ax[1].plot(np.log10(mm), np.log10(mf.STf(mm, aa)), 'C%d--'%iz, label="ST")
+        if iz == 2: ax[1].plot(np.log10(mm), np.log10(mf.STf(mm, aa)), 'C%d--'%iz, label="ST")
         ax[1].plot(np.log10(mm), np.log10(mf.STf(mm, aa)), 'C%d--'%iz)
 
 #
@@ -108,8 +108,8 @@ def make_mf_plot(fname, fsize=13):
     ax[1].set_xlabel(r'${\rm log M}(\rm M_{\odot}/h)$', fontdict=font)
     #ax[0].set_ylabel(r'log ( SMF $=\, \frac{dn}{d{\rm log}M} {\rm Mpc}^{-3}{\rm dex}^{-1} $)', fontdict=font)
     #ax[1].set_ylabel(r'log ( HMF $=\, \frac{dn}{d{\rm ln}M} {\rm Mpc^{-3}h}^{3} $)', fontdict=font)
-    ax[0].set_ylabel(r'log (SMF) (${\rm Mpc}^{-3}{\rm dex}^{-1} $)', fontdict=font)
-    ax[1].set_ylabel(r'log (HMF) (${\rm Mpc^{-3}h}^{3} $)', fontdict=font)
+    ax[0].set_ylabel(r'log (SMF) [${\rm Mpc}^{-3}{\rm dex}^{-1} $]', fontdict=font)
+    ax[1].set_ylabel(r'log (HMF) [${\rm Mpc^{-3}h}^{3} $]', fontdict=font)
     # and finish up.
     plt.tight_layout()
     plt.savefig(fname)
@@ -125,6 +125,7 @@ def make_quasar_plot(fname, fsize=13):
     fig,ax = plt.subplots(1,2,figsize=(7, 3))
 
 
+    qlfdat = np.loadtxt('../../data/qlf.dat').T
     for iz, zz in enumerate(zlist):
         aa  = 1.0/(1.0+zz)
         # Read the data from file.
@@ -132,9 +133,10 @@ def make_quasar_plot(fname, fsize=13):
         h = cosmodef['h']
         diff = mhigh-mlow
         mff = nn/(bs/h)**3/diff
-        ax[0].plot(mm, np.log10(mff) , 'C%do'%iz, label='$z = %.1f$'%zz, markersize=3)
-        ax[0].plot(mm, np.log10(qlf(mm, zz)) , 'C%d--'%iz)
-
+        ax[0].plot(mm, np.log10(mff) , 'C%d-'%iz, label='$z = %.1f$'%zz, markersize=3)
+        ax[0].plot(mm, np.log10(qlf(mm, zz)) , 'C%d--'%iz, lw=0.5)
+        mask = (qlfdat[5] > zz-0.2) & (qlfdat[5] < zz+0.2)
+        ax[0].errorbar(qlfdat[6][mask], qlfdat[9][mask], qlfdat[[11,10]].T[mask].T, qlfdat[[7,8]].T[mask].T, fmt='.', color='C%d'%iz)
     
     if 'big' in suff: dpathbig = dpath
     else: dpathbig = '../../data/outputs/%s/%s/'%(suff+'-big', model)
@@ -147,9 +149,9 @@ def make_quasar_plot(fname, fsize=13):
     h1uv = np.loadtxt(dpathbig + 'uvbg/HI_UVbg_ap2p5_bias_{:.4f}.txt'.format(aa)).T
     h1uv2 = np.loadtxt(dpathbig + 'uvbg/HI_UVbg_ap2p5_star_bias_{:.4f}.txt'.format(aa)).T
     k = lum[0]
-    ax[1].plot(k, lum[2]**2*lum[3], label='Lum')
-    ax[1].plot(k, uv[2]**2*uv[3], label=r'UV$_{\rm QSO}$')
-    ax[1].plot(k, uv2[2]**2*uv2[3], label=r'UV$_{\rm QSO+star}$')
+    ax[1].plot(k, lum[2]**2*lum[3], label='L$_Q$')
+    ax[1].plot(k, uv[2]**2*uv[3], label=r'$\Gamma_{\rm QSO}$')
+    ax[1].plot(k, uv2[2]**2*uv2[3], label=r'$\Gamma_{\rm QSO+star}$')
     #ax[1].plot(k, h1uv[2]**2*h1uv[3], '--', label='HI: QSO')
     #ax[1].plot(k, h1uv2[2]**2*h1uv2[3], '--', label='HI: QSO+Stellar')
     #ax[1].plot(k, h1fid[2]**2*h1fid[3], '-', label='HI: fid')
@@ -163,8 +165,8 @@ def make_quasar_plot(fname, fsize=13):
     ax[0].legend(prop=fontmanage)
     ax[1].legend(ncol=1, loc=3, prop=fontmanage)
 
-    ax[0].set_xlim(-4, -27)
-    ax[0].set_ylim(-7, -2)
+    ax[0].set_xlim(-5, -30)
+    ax[0].set_ylim(-11, -2)
     ax[1].set_ylim(1e-2, 5e4)
 
     for axis in ax:
@@ -179,8 +181,8 @@ def make_quasar_plot(fname, fsize=13):
     ax[1].set_xlabel(r' $k\,\, [h{\rm Mpc}^-1]$', fontdict=font)
     #ax[0].set_ylabel(r'log ( SMF $=\, \frac{dn}{d{\rm log}M} {\rm Mpc}^{-3}{\rm dex}^{-1} $)', fontdict=font)
     #ax[1].set_ylabel(r'log ( HMF $=\, \frac{dn}{d{\rm ln}M} {\rm Mpc^{-3}h}^{3} $)', fontdict=font)
-    ax[0].set_ylabel(r'log (QLF) (${\rm Mpc}^{-3}{\rm mag}^{-1} $)', fontdict=font)
-    ax[1].set_ylabel(r'$P(k)$', fontdict=font)
+    ax[0].set_ylabel(r'log ($\Phi$) [${\rm Mpc}^{-3}{\rm mag}^{-1} $]', fontdict=font)
+    ax[1].set_ylabel(r'$P(k)\quad [h^{-3}{\rm Mpc}^3]$', fontdict=font)
     # and finish up.
     plt.tight_layout()
     plt.savefig(fname)

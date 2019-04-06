@@ -469,7 +469,7 @@ def make_crossratio_plot():
     zlist = [3.5, 4.0, 6.0][:]
     #zlist = [5.0, 6.0]
 
-    fig, axar = plt.subplots(2, 3, figsize=(11, 5), sharex=True, sharey='row')
+    fig, axar = plt.subplots(2, 3, figsize=(10, 4.5), sharex=True, sharey='row')
     
     for iz, zz in enumerate(zlist):
         
@@ -510,7 +510,7 @@ def make_crossratio_plot():
             kmax = 10
             
             lbl = None
-            if iz == 2: lbl = r'$\alpha = %.1f$'%profile
+            #if iz == 2: lbl = r'$\alpha = %.1f$'%profile
             ax[0].plot(k, ph1uv[1]/ph1fid[1], 'C%d'%ip)
             ax[1].plot(k, ph1uvstar[1]/ph1fid[1], 'C%d-'%ip, label=lbl)
             
@@ -541,6 +541,9 @@ def make_crossratio_plot():
 #            
 
 
+    ax[0].text(0.012,0.75,"QSO", color='k', fontdict=font, alpha=0.8)
+    ax[1].text(0.012,0.93,"QSO+\nStellar", color='k', fontdict=font, alpha=0.8)
+
 
     for axis in axar[1]: axis.set_xlabel(r'$k\quad [h\,{\rm Mpc}^{-1}]$', fontdict=font)
     for axis in axar[:, 0]: axis.set_ylabel(r'$P_{m{\rm HI}^{\Gamma}}(k) / P_{m{\rm HI}^{\rm fid}}(k)$', fontdict=font)
@@ -549,7 +552,13 @@ def make_crossratio_plot():
         axis.set_xlim(0.01, 0.5)
         axis.set_xscale('log')
         #axis.set_yscale('log')
-    axar[1, 2].legend(ncol=2, prop=fontmanage,  frameon=True, loc='lower center')
+    handles, labels = axar[1, 2].get_legend_handles_labels()
+    # sort both labels and handles by labels
+    handles = handles[::2] + handles[1::2]
+    labels = labels[::2] + labels[1::2]
+    #labels, handles = zip(*sorted(zip(labels, handles), key=lambda t: t[0]))
+    #axar[1, 2].legend(handles, labels, ncol=2, prop=fontmanage,  frameon=True, loc='lower center')
+
     for axis in axar[0]: axis.set_ylim(0.7, 1.01)
     for axis in axar[1]: axis.set_ylim(0.92, 1.01)
 
@@ -574,6 +583,6 @@ def make_crossratio_plot():
 if __name__=="__main__":
     #make_biasauto_plot()
     #make_bk_scatter_plot()
-    make_bgamma_plot()
+    #make_bgamma_plot()
     make_crossratio_plot()
     #

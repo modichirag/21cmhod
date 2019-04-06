@@ -55,6 +55,7 @@ def make_redclustering_plot():
 
     nmu = 4
     nell = 3
+    
     for iz, zz in enumerate(zlist):
 
         aa = 1.0/(1.0+zz)
@@ -78,11 +79,24 @@ def make_redclustering_plot():
 
         ##
         pkd = np.loadtxt(dpath + "HI_pks_ll_{:06.4f}.txt".format(aa))[1:,:]
+        muu = np.linspace(-1, 1, 1000)
+        kf = (bb+ff*muu**2)**2
+        l0 = np.trapz(kf, muu) *1/2.
+        l2 = np.trapz(kf* 1*(3*muu**2-1)/2., muu)*5/2.
+        l4 = np.trapz(kf* 1*(35*muu**4-30*muu**2+3)/8., muu)*9/2.
+        #nl0 = np.trapz(1+muu*0, muu) *1/2.
+        #nl2 = np.trapz(1* (1*(3*muu**2-1)/2.)**2, muu) * 5/2.
+        #nl4 = np.trapz(1* (1*(35*muu**4-30*muu**2+3)/8.)**2, muu) *9/2.
+        #print(nl0, nl2, nl4)
+        llfac = [l0,l2,l4]
         for i in range(nell):
             lbl = None
             if iz==i: lbl = r'$\ell=%d$'%(2*i)
             ax[iz,1].plot(pkd[:,0],pkd[:,0]**2*pkd[:,i+1],'C%d-'%i,\
                                    alpha=0.75,label=lbl)
+
+            ax[iz,1].plot(pk[:,0],pk[:,0]**2*llfac[i]*pk[:,1],'C%d:'%i)
+
 
         ax[iz,0].text(2e-2, 100, r'$z=%.1f$'%zz,color='black',\
                        ha='left',va='center', fontdict=font)

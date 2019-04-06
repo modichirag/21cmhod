@@ -149,7 +149,7 @@ def make_bao_plot(fname):
         ax[0].plot(pkd[:,0],rat+0.2*(jj),'C%d-'%iz,\
                     label="z={:.1f}".format(zz))
         ax[0].plot(pkd[:,0],rats+0.2*(jj),'C%d--'%iz, alpha=0.5, lw=2)
-        ax[0].plot(pkd[:,0],ratlin+0.2*(jj),'k:', lw=1)
+        ax[0].plot(pkd[:,0],ratlin+0.2*(jj),':', color='gray',  lw=1.5)
         ax[0].axhline(1+0.2*(jj),color='gray', lw=0.5, alpha=0.5)
 
         #xi
@@ -181,8 +181,8 @@ def make_bao_plot(fname):
         off = 10
         ax[1].plot(rr, jj*off + rr**2*xi, 'C%d'%iz, label="z={:.1f}".format(zz))
         ax[1].plot(rr, jj*off + rr**2*xis, 'C%d--'%iz, lw=2, alpha=0.5)
-        ax[1].plot(rrz, jj*off + xilin, 'k:', lw=1)
-        ax[1].plot(rrz, jj*off + xilins, 'k--', lw=0.5)
+        ax[1].plot(rrz, jj*off + xilin, ':', color='gray', lw=1.5)
+        ax[1].plot(rrz, jj*off + xilins, '-', color='gray', lw=0.1)
 
         jj =  jj+1
 
