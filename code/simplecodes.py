@@ -67,9 +67,11 @@ def readincatalog(aa, matter=False):
 
 
 def savecatalogmesh(bs, nc, aa):
-    dmcat = BigFileCatalog(scratch + sim + '/fastpm_%0.4f/'%aa, dataset='1')
+    dmcat = BigFileCatalog(scratchyf + sim + '/fastpm_%0.4f/'%aa, dataset='1')
     pm = ParticleMesh(BoxSize = bs, Nmesh = [nc, nc, nc])
-    mesh = pm.paint(dmcat['Position'])
+    pos = dmcat['Position'].compute()
+    layout = pm.decompose(pos)
+    mesh = pm.paint(pos, layout=layout)
     mesh = FieldMesh(mesh)
     path = project +  sim + '/fastpm_%0.4f/'%aa + '/dmesh_N%04d'%nc
     mesh.save(path, dataset='1', mode='real')
@@ -251,12 +253,12 @@ def measurexi(N, edges):
 
 if __name__=="__main__":
 
-    measurepk(nc)        
+    #measurepk(nc)        
     for aa in aafiles:
         if rank == 0: print(aa)
         #readincatalog(aa=aa)
         #assignH1mass(aa=aa)
-        #savecatalogmesh(bs=bs, nc=nc, aa=aa)
+        savecatalogmesh(bs=bs, nc=nc, aa=aa)
 
     #edges = np.logspace(np.log10(0.5), np.log10(20), 10)
     ## use 1000 particles up to (20 Mpc/h) ** 3 volume;

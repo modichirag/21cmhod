@@ -5,7 +5,7 @@
 import numpy as np
 from scipy.interpolate import InterpolatedUnivariateSpline as Spline
 
-db = "./"
+db = "../data/"
 
 
 
@@ -106,7 +106,8 @@ def create_pk(aa,zf=2.0,scale=1.0,\
 
 
 if __name__=="__main__":
-    zlist = np.array([2.0,2.5,3.0,4.0,5.0,6.0])
+    #zlist = np.array([2.0,2.5,3.0,4.0,5.0,6.0])
+    zlist = np.array([0.0])
     alist = 1.0/(1+zlist)
     for aa in alist:
         create_pk(aa)

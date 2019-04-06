@@ -12,18 +12,24 @@ setup_logging('info')
 #Get model as parameter
 import argparse
 parser = argparse.ArgumentParser()
-parser.add_argument('-m', '--model', help='model name to use')
+#parser.add_argument('pathcm', help='path of input data from cm scratch')
+parser.add_argument('-p', '--parameter',  help='parameter to change', default='alpha')
+parser.add_argument('-m', '--model', help='model name to use', default='ModelC')
 parser.add_argument('-s', '--size', help='for small or big box', default='small')
 parser.add_argument('-a', '--amp', help='amplitude for up/down sigma 8', default=None)
+parser.add_argument('-d', '--delta', help='change the parameter by', default=0.05, type=float)
 args = parser.parse_args()
-if args.model == None:
-    print('Specify a model name')
+if args.parameter == None:
+    print('Specify a parameter to vary')
     sys.exit()
 #print(args, args.model)
 
 model = args.model #'ModelD'
 boxsize = args.size
 amp = args.amp
+#param = args.parameter
+#delta = args.delta
+#scratchcm = args.pathcm
 #
 #
 #Global, fixed things
@@ -32,7 +38,8 @@ scratchcm = '/global/cscratch1/sd/chmodi/m3127/H1mass/'
 project  = '/project/projectdirs/m3127/H1mass/'
 cosmodef = {'omegam':0.309167, 'h':0.677, 'omegab':0.048}
 alist    = [0.1429,0.1538,0.1667,0.1818,0.2000,0.2222,0.2500,0.2857,0.3333]
-#alist = alist[-1:]
+#alist    = [0.1429,0.2000,0.3333]
+#alist = [0.3333]
 
 #Parameters, box size, number of mesh cells, simulation, ...
 if boxsize == 'small':
@@ -185,8 +192,8 @@ def calc_bias(aa,h1mesh,suff):
         dm    = BigFileMesh(scratchyf+sim+'/fastpm_%0.4f/'%aa+\
                             '/1-mesh/N%04d'%nc,'').paint()
     else:
-        dm    = BigFileMesh(project+sim+'/fastpm_%0.4f/'%aa+\
-                        '/dmesh_N%04d/1/'%nc,'').paint()
+        dm    = BigFileMesh(scratchcm+sim+'/fastpm_%0.4f/'%aa+\
+                            '/1-mesh/', '1').paint()
     dm   /= dm.cmean()
     if rank==0: print('Computing DM P(k)...')
     pkmm  = FFTPower(dm,mode='1d').power
@@ -215,16 +222,66 @@ def calc_bias(aa,h1mesh,suff):
                        format(kk[i],b1x[i],b1a[i],pkmm[i].real))
         fout.close()
 
+
+
+
+def get_changeM0(aa, Model):
+
+    zz = 1/aa - 1
+    mod = Model(aa) 
+    mcut = mod.mcut
+    mod.derivate('mcut', 0.05)
+    mcutup = mod.mcut
+    mod = Model(aa) 
+    mod.derivate('mcut', -0.05)
+    mcutdn = mod.mcut
+    
+    mdiff = mcutup - mcutdn
+    if boxsize == 'small':
+        dpath = '../data/outputs/m1_00p3mh-alpha-0p8-subvol/ModelC/'
+        dpathup = '../data/outputs/m1_00p3mh-alpha-0p8-subvol-up/ModelC/'
+        dpathdn = '../data/outputs/m1_00p3mh-alpha-0p8-subvol-dn/ModelC/'
+    else:
+        dpath = '../data/outputs/m1_00p3mh-alpha-0p8-subvol-big/ModelC/'
+        dpathup = '../data/outputs/m1_00p3mh-alpha-0p8-subvol-big-up/ModelC/'
+        dpathdn = '../data/outputs/m1_00p3mh-alpha-0p8-subvol-big-dn/ModelC/'
+
+    fid = np.loadtxt(dpath + 'HI_bias_{:06.4f}.txt'.format(aa)).T
+    kk = fid[0]
+    pkf = fid[2]**2*fid[3]
+    bba = fid[2][1:6].mean()
+
+    p1 = np.loadtxt(dpathup + 'HI_bias_{:06.4f}.txt'.format(aa)).T
+    p2 = np.loadtxt(dpathdn + 'HI_bias_{:06.4f}.txt'.format(aa)).T
+    bbaup, bbadn = p1[2][1:6].mean(), p2[2][1:6].mean()
+    bbxup, bbxdn = p1[1][1:6].mean(), p2[1][1:6].mean()
+    if rank == 0: print('Bias fid, up, dn : ', bba, bbaup, bbadn)
+
+    derivba, derivbx = 0, 0
+    p1 = np.loadtxt(dpath + 'mcut_vp05/HI_bias_{:06.4f}.txt'.format(aa)).T
+    p2 = np.loadtxt(dpath + 'mcut_vm05/HI_bias_{:06.4f}.txt'.format(aa)).T
+    
+    bb1a, bb1x = p1[2][1:6].mean(), p1[1][1:6].mean()
+    bb2a, bb2x = p2[2][1:6].mean(), p2[1][1:6].mean()
+    
+    dbba = (bb1a - bb2a)/mdiff
+    dbbx = (bb1x - bb2x)/mdiff
+    
+    dmaup = (bba - bbaup)/dbba
+    dmadn = (bba - bbadn)/dbba
+    return dmaup, dmadn*0.8 #Fudge for lower, not sure why
     
     
 
 if __name__=="__main__":
     if rank==0: print('Starting')
     suff='-m1_00p3mh-alpha-0p8-subvol'
-    outfolder = ofolder + suff[1:]
+    outfolder = ofolder + suff[1:] 
     if bs == 1024: outfolder = outfolder + "-big"
     if amp is not None: outfolder = outfolder + "-%s"%amp
     outfolder += "/%s/"%modelname
+    outfolder += '/matchbias_mcut/'
+    
     if rank == 0: print(outfolder)
     try: 
         os.makedirs(outfolder)
@@ -234,27 +291,37 @@ if __name__=="__main__":
         if rank == 0: print('\n ############## Redshift = %0.2f ############## \n'%(1/aa-1))
         halocat = BigFileCatalog(scratchyf + sim+ '/fastpm_%0.4f//'%aa, dataset='LL-0.200')
         mp = halocat.attrs['MassTable'][1]*1e10##
-        if rank == 0: print('Mass of the particle : %0.2e'%mp)
-
         halocat['Mass'] = halocat['Length'].compute() * mp
-        cencat = BigFileCatalog(scratchcm + sim+'/fastpm_%0.4f/cencat'%aa+suff)
-        satcat = BigFileCatalog(scratchcm + sim+'/fastpm_%0.4f/satcat'%aa+suff)
-        rsdfac = read_conversions(scratchyf + sim+'/fastpm_%0.4f/'%aa)
+        cencat = BigFileCatalog(scratchcm+sim+'/fastpm_%0.4f/cencat'%aa+suff)
+        satcat = BigFileCatalog(scratchcm+sim+'/fastpm_%0.4f/satcat'%aa+suff)
+        rsdfac = read_conversions(scratchcm+sim+'/fastpm_%0.4f/'%aa)
+        #
         #
 
         HImodelz = HImodel(aa)
+        mcut = HImodelz.mcut
+        dmup, dmdn = get_changeM0(aa, HImodel)
+        if rank == 0: print ('Fractional change in mcut ', dmup/mcut, dmdn/mcut)
+        if amp == 'up':
+            HImodelznew = HImodel(aa)
+            HImodelznew.mcut   += dmup
+        else:
+            HImodelznew = HImodel(aa)
+            HImodelznew.mcut   += dmdn
+
         los = [0,0,1]
-        halocat['HImass'], cencat['HImass'], satcat['HImass'] = HImodelz.assignHI(halocat, cencat, satcat)
-        halocat['RSDpos'], cencat['RSDpos'], satcat['RSDpos'] = HImodelz.assignrsd(rsdfac, halocat, cencat, satcat, los=los)
+        halocat['HImass'], cencat['HImass'], satcat['HImass'] = HImodelznew.assignHI(halocat, cencat, satcat)
+        halocat['RSDpos'], cencat['RSDpos'], satcat['RSDpos'] = HImodelznew.assignrsd(rsdfac, halocat, cencat, satcat, los=los)
 
         if rank == 0: print('Creating HI mesh in redshift space')
-        h1mesh = HImodelz.createmesh(bs, nc, halocat, cencat, satcat, mode=mode, position='RSDpos', weight='HImass')
+        h1mesh = HImodelznew.createmesh(bs, nc, halocat, cencat, satcat, mode=mode, position='RSDpos', weight='HImass')
 
         calc_pk1d(aa, h1mesh, outfolder)
         calc_pkmu(aa, h1mesh, outfolder, los=los)
         calc_pkll(aa, h1mesh, outfolder, los=los)
 
         if rank == 0: print('Creating HI mesh in real space for bias')
-        h1mesh = HImodelz.createmesh(bs, nc, halocat, cencat, satcat, mode=mode, position='Position', weight='HImass')
+        h1mesh = HImodelznew.createmesh(bs, nc, halocat, cencat, satcat, mode=mode, position='Position', weight='HImass')
         calc_bias(aa, h1mesh, outfolder)
+
 
