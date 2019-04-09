@@ -24,7 +24,7 @@ print(font)
 #
 import argparse
 parser = argparse.ArgumentParser()
-parser.add_argument('-s', '--size', help='which box size simulation', default='small')
+parser.add_argument('-s', '--size', help='which box size simulation', default='big')
 args = parser.parse_args()
 boxsize = args.size
 
@@ -174,6 +174,15 @@ def make_calib_full_plot():
         ax[0].plot(np.linspace(1.5,3.5,100),ss(np.linspace(1.5,3.5,100)),'C%d--'%im)
 
 
+    hbias = []
+    for iz, zz in enumerate(zlist):
+        aa  = 1.0/(1.0+zz)
+        pkh = np.loadtxt('../../data/outputs/halos/highres/10240-9100-fixed/pkhm_{:06.4f}.txt'.format(aa)).T
+        pkd = np.loadtxt('../../data/outputs/halos/highres/10240-9100-fixed/pkd_{:06.4f}.txt'.format(aa)).T
+        hbias.append([zz, ((pkh[1, 1:6]/pkd[1, 1:6])**0.5).mean()])
+    hbias = np.array(hbias).T
+    ss = Spline(hbias[0], hbias[1])
+    inax.plot(np.linspace(1.5,6.5,100),ss(np.linspace(1.5,6.5,100)),'k', lw=1, alpha=0.7)
 
 
     ################################################################
