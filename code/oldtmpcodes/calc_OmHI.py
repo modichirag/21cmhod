@@ -20,6 +20,7 @@ alist    = [0.1429,0.1538,0.1667,0.1818,0.2000,0.2222,0.2500,0.2857,0.3333]
 
 
 bs, nc, ncsim, sim, prefix = 256, 512, 2560, 'highres/%d-9100-fixed'%2560, 'highres'
+bs, nc, ncsim, sim, prefix = 1024, 1024, 10240, 'highres/%d-9100-fixed'%10240, 'highres'
 
 # It's useful to have my rank for printing...
 pm   = ParticleMesh(BoxSize=bs, Nmesh=[nc, nc, nc])
@@ -28,11 +29,13 @@ comm = pm.comm
 
 
 #Which model & configuration to use
-HImodel = HImodels.ModelB
-modelname = 'ModelB'
+HImodel = HImodels.ModelA
+modelname = 'ModelA'
 mode = 'galaxies'
 suff='-m1_00p3mh-alpha-0p8-subvol'
-outfolder = '../data/outputs/' + suff[1:] + "/%s/"%modelname
+outfolder = '../data/outputs/' + suff[1:]
+if bs == 1024: outfolder = outfolder + '-big/'
+outfolder = outfolder +  "/%s/"%modelname
 
 
 
@@ -78,7 +81,7 @@ def calc_OmHI(aa, suff):
 
     # Convert to OmegaHI.
     nbar   = mHI**2/mHI2/bs**3
-    rhoHI  = mHI/bs**3
+    rhoHI  = mHI/bs**3/aa**3
     cc     = Cosmology()
     #OmHI   = rhoHI/cc.rhoCritCom(1/aa-1)
     OmHI   = rhoHI/2.7754e11
@@ -101,9 +104,6 @@ if __name__=="__main__":
         tosave.append([1/aa-1, omHI, nbar])
     
     if rank == 0:
-        np.savetxt(outfolder + '/OmHI2.txt', np.array(tosave), fmt='%0.5e', header='z, OmHI, nbar')
-
-
-
+        np.savetxt(outfolder + '/OmHI.txt', np.array(tosave), fmt='%0.5e', header='z, OmHI, nbar')
 
 
