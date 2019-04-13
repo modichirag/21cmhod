@@ -109,8 +109,8 @@ def getfsat():
     for ia, aa in enumerate(alist):
         dist = np.loadtxt(dpath + "HI_dist_{:06.4f}.txt".format(aa))[:,:]
         dist = dist[dist[:,1] !=0]
-        total = dist[:, 2].sum()
-        sats = dist[:, 4].sum()
+        total = (dist[:, 1]*dist[:, 2]).sum()
+        sats = (dist[:, 1]*dist[:, 4]).sum()
         fracs.append(sats/total)
     return np.array(fracs)
 
