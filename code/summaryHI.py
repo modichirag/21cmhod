@@ -51,6 +51,18 @@ if amp is not None:
         sys.exit()
         
 
+def wedge(z, D=6, att='opt'):
+    chiz = cosmo.comoving_distance(z)
+    hz = cosmo.efunc(z)*100
+    R = chiz*hz/(1+z)/2.99e5
+    if att == 'opt': thetafov = 1.22 * 0.211 * (1+z)/D/2
+    elif att == 'pess': thetafov = 1.22 * 0.211 * (1+z)/D/2 *3
+    elif att == 'nope': thetafov = np.pi/2.
+    X = np.sin(thetafov) * R
+    mu = X/(1+X**2)**0.5
+    return mu
+
+
 
 #Which model & configuration to use
 modeldict = {'ModelA':HImodels.ModelA, 'ModelB':HImodels.ModelB, 'ModelC':HImodels.ModelC}

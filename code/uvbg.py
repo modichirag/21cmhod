@@ -87,7 +87,7 @@ def modulateHI(pos, mfid, uvmesh, layout, alpha, kappa=None):
 
 
 def setupuvmesh(zz, suff, sim, profile, pm, model='ModelA', switchon=0.01, eta=0.1, galscatter=0.3, bhscatter=0.3, lumscatter=0.3, 
-                stellar=False):
+                stellar=False, stellarfluc=False, Rg=0):
     
     rank = pm.comm.rank
     aa = 1/(1+zz)
@@ -114,14 +114,21 @@ def setupuvmesh(zz, suff, sim, profile, pm, model='ModelA', switchon=0.01, eta=0
 
     alpha, beta = mbhparams['%0.1f'%zz][1:]
     if rank == 0: print('Parameters are ', alpha, beta)
-    cencat['blackhole'] = mbh(moster(cencat['Mass'].compute(), z=zz, scatter=galscatter), alpha, beta, scatter=bhscatter)
-    satcat['blackhole'] = mbh(moster(satcat['Mass'].compute(), z=zz, scatter=galscatter), alpha, beta, scatter=bhscatter)
+    cencat['stellar'] = moster(cencat['Mass'].compute(), z=zz, scatter=galscatter)
+    satcat['stellar'] = moster(satcat['Mass'].compute(), z=zz, scatter=galscatter)
+    cencat['blackhole'] = mbh(cencat['stellar'], alpha, beta, scatter=bhscatter)
+    satcat['blackhole'] = mbh(satcat['stellar'], alpha, beta, scatter=bhscatter)
     cencat['luminosity'] = lq(cencat['blackhole'], fon=switchon, eta=eta, scatter=lumscatter)
     satcat['luminosity'] = lq(satcat['blackhole'], fon=switchon, eta=eta, scatter=lumscatter)
 
     cmesh = pm.paint(cencat['Position'], mass=cencat['luminosity'], layout=clayout)
     smesh = pm.paint(satcat['Position'], mass=satcat['luminosity'], layout=slayout)
     lmesh = cmesh + smesh
+
+    if stellarfluc:
+        cmesh = pm.paint(cencat['Position'], mass=cencat['stellar'], layout=clayout)
+        smesh = pm.paint(satcat['Position'], mass=satcat['stellar'], layout=slayout)
+        slmesh = cmesh + smesh
     #if lumspectra : calc_bias(aa,lmesh/lmesh.cmean(), suff, fname='Lum')
 
 
@@ -130,15 +137,26 @@ def setupuvmesh(zz, suff, sim, profile, pm, model='ModelA', switchon=0.01, eta=0
     meshc = lmesh.r2c()
     kmesh = sum(i**2 for i in meshc.x)**0.5
     wt = np.arctan(kmesh *mfpath)/kmesh/mfpath
+    if Rg : wt *= np.exp(-0.5*(kmesh*Rg)**2)
     wt[kmesh == 0] = 1
     meshc*= wt
     uvmesh = meshc.c2r()
 
     if stellar : 
         uvstellar = stellarback['{:.1f}'.format(zz)]*uvmesh.cmean()
-        uvmesh += uvstellar
-    #print(uvmesh.cmean())
-    #if uvspectra: calc_bias(aa, uvmesh/uvmesh.cmean(), suff, fname='UVbg')
+        if stellarfluc:
+            meshc = slmesh.r2c()
+            kmesh = sum(i**2 for i in meshc.x)**0.5
+            wt = np.arctan(kmesh *mfpath)/kmesh/mfpath
+            if Rg : wt *= np.exp(-0.5*(kmesh*Rg)**2)
+            wt[kmesh == 0] = 1
+            meshc*= wt
+            suvmesh = meshc.c2r()
+            suvmesh *= uvstellar/suvmesh.cmean()
+            uvmesh += suvmesh 
+        else:
+            uvmesh += uvstellar
+
 
     #
     cencat['HIuvmass'] = modulateHI(cencat['Position'], cencat['HImass'], uvmesh, clayout, alpha=profile)
@@ -152,53 +170,3 @@ def setupuvmesh(zz, suff, sim, profile, pm, model='ModelA', switchon=0.01, eta=0
     cats = [cencat, satcat]
     meshes = [h1meshfid, h1mesh, lmesh, uvmesh]
     return cats, meshes
-
-
-
-    
-    
-##
-##if __name__=="__main__":
-##    if rank==0: print('Starting')
-##    suff='m1_00p3mh-alpha-0p8-subvol'
-##    outfolder = ofolder + suff
-##    if bs == 1024: outfolder = outfolder + "-big"
-##    outfolder += "/%s/"%modelname
-##    if rank == 0: print(outfolder)
-##    try: 
-##        os.makedirs(outfolder)
-##    except : pass
-##
-##    #for aa in alist:
-##    for zz in [6.0, 5.0]:
-##        aa = 1/(1+zz)
-##
-##        cats, meshes = setupuvmesh(zz, suff=suff, sim=sim, profile=profile)
-##        cencat, satcat = cats
-##        h1meshfid, h1mesh, lmesh, uvmesh = meshes
-##
-##
-##        if lumspectra : calc_bias(aa,lmesh/lmesh.cmean(), outfolder, fname='Lum')
-##
-##        if uvspectra: calc_bias(aa, uvmesh/uvmesh.cmean(), outfolder, fname='UVbg')
-##
-##        fname = 'HI_UVbg_ap%dp%d'%((profile*10)//10, (profile*10)%10)
-##        calc_bias(aa, h1mesh/h1mesh.cmean(), outfolder, fname=fname)
-##
-##        ratio = (cencat['HIuvmass']/cencat['HImass']).compute()
-##        print(rank, 'Cen', '%0.3f'%ratio.max(), '%0.3f'%ratio.min(), '%0.3f'%ratio.mean(), '%0.3f'%ratio.std())
-##
-##        ratio = (satcat['HIuvmass']/satcat['HImass']).compute()
-##        print(rank, 'Sat', '%0.3f'%ratio.max(), '%0.3f'%ratio.min(), '%0.3f'%ratio.mean(), '%0.3f'%ratio.std())
-##
-###        uvpreview = uvmesh.preview(Nmesh=128)
-###        if rank == 0:
-###            import matplotlib.pyplot as plt
-###            from matplotlib.colors import LogNorm
-###            print('save figure')
-###            plt.figure()
-###            plt.imshow(uvpreview.sum(axis=0), norm=LogNorm())
-###            plt.colorbar()
-###            plt.savefig('tmpfig%d.pdf'%zz)
-###            print('Figure saved')
-###            

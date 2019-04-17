@@ -32,7 +32,7 @@ scratchcm = '/global/cscratch1/sd/chmodi/m3127/H1mass/'
 project  = '/project/projectdirs/m3127/H1mass/'
 cosmodef = {'omegam':0.309167, 'h':0.677, 'omegab':0.048}
 alist    = [0.1429,0.1538,0.1667,0.1818,0.2000,0.2222,0.2500,0.2857,0.3333]
-#alist = alist[-1:]
+alist = alist[-1:]
 
 #Parameters, box size, number of mesh cells, simulation, ...
 if boxsize == 'small':
@@ -118,18 +118,18 @@ def calc_pk1d(aa, h1mesh, outfolder):
 
 
 
-def calc_pkmu(aa, h1mesh, outfolder, los=[0,0,1]):
+def calc_pkmu(aa, h1mesh, outfolder, los=[0,0,1], Nmu=int(4)):
     '''Compute the redshift-space P(k) for the HI in mu bins'''
 
     if rank==0: print('Calculating pkmu')
-    pkh1h1 = FFTPower(h1mesh,mode='2d',Nmu=4,los=los).power
+    pkh1h1 = FFTPower(h1mesh,mode='2d',Nmu=Nmu,los=los).power
     # Extract what we want.
     kk = pkh1h1.coords['k']
     sn = pkh1h1.attrs['shotnoise']
     pk = pkh1h1['power']
     # Write the results to a file.
     if rank==0:
-        fout = open(outfolder + "HI_pks_mu_{:06.4f}.txt".format(aa),"w")
+        fout = open(outfolder + "HI_pks_mu_{:02d}_{:06.4f}.txt".format(Nmu, aa),"w")
         fout.write("# Redshift space power spectrum in mu bins.\n")
         fout.write("# Subtracting SN={:15.5e}.\n".format(sn))
         ss = "# {:>8s}".format(r'k\mu')
@@ -143,6 +143,8 @@ def calc_pkmu(aa, h1mesh, outfolder, los=[0,0,1]):
             fout.write(ss+"\n")
         fout.close()
     #
+
+
 
 
 
@@ -250,11 +252,11 @@ if __name__=="__main__":
         if rank == 0: print('Creating HI mesh in redshift space')
         h1mesh = HImodelz.createmesh(bs, nc, halocat, cencat, satcat, mode=mode, position='RSDpos', weight='HImass')
 
-        calc_pk1d(aa, h1mesh, outfolder)
-        calc_pkmu(aa, h1mesh, outfolder, los=los)
-        calc_pkll(aa, h1mesh, outfolder, los=los)
+        #calc_pk1d(aa, h1mesh, outfolder)
+        calc_pkmu(aa, h1mesh, outfolder, los=los, Nmu=8)
+        #calc_pkll(aa, h1mesh, outfolder, los=los)
 
         if rank == 0: print('Creating HI mesh in real space for bias')
         h1mesh = HImodelz.createmesh(bs, nc, halocat, cencat, satcat, mode=mode, position='Position', weight='HImass')
-        calc_bias(aa, h1mesh, outfolder)
+        #calc_bias(aa, h1mesh, outfolder)
 
