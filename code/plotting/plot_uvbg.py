@@ -42,7 +42,7 @@ args = parser.parse_args()
 model = 'ModelA' #args.model
 boxsize = args.size
 stellar = False
-
+stellarfunc = True
 
 
 suff = 'm1_00p3mh-alpha-0p8-subvol'
@@ -336,6 +336,8 @@ def make_bgamma_plot():
         plum = np.loadtxt(dpath + 'uvbg/Lum_bias_{:.4f}.txt'.format(aa)).T
         
         puvstar = np.loadtxt(dpath + 'uvbg/UVbg_star_bias_{:.4f}.txt'.format(aa)).T
+        if stellarfunc:
+            puvstar = np.loadtxt(dpath + 'uvbg/UVbg_starx_bias_{:.4f}.txt'.format(aa)).T
         puv = np.loadtxt(dpath + 'uvbg/UVbg_bias_{:.4f}.txt'.format(aa)).T
 
         #
@@ -345,6 +347,8 @@ def make_bgamma_plot():
             #
             ap = 'ap{:1.0f}p{:1.0f}'.format((profile*10)//10, (profile*10)%10)
             ph1uvstar = np.loadtxt(dpath + 'uvbg/HI_UVbg_{}_star_bias_{:6.4f}.txt'.format( ap, aa)).T
+            if stellarfunc:
+                ph1uvstar = np.loadtxt(dpath + 'uvbg/HI_UVbg_{}_starx_bias_{:6.4f}.txt'.format( ap, aa)).T
             ph1uv = np.loadtxt(dpath + 'uvbg/HI_UVbg_{}_bias_{:6.4f}.txt'.format( ap, aa)).T
             
             lbl0, lbl11, lbl12, lbl13, lbl14 = None, None, None, None, None
@@ -416,6 +420,10 @@ def make_bgamma_plot():
             #Scatter bias
             valsstar = np.loadtxt(dpath +'/uvbg/scatter_star_n{:02d}_ap{:1.0f}p{:1.0f}_{:6.4f}.txt'.format(ncube, \
                                                                                                 (profile*10)//10, (profile*10)%10, aa)).T
+            if stellarfunc:
+                valsstar = np.loadtxt(dpath +'/uvbg/scatter_starx_n{:02d}_ap{:1.0f}p{:1.0f}_{:6.4f}.txt'.format(ncube, \
+                                                                                                (profile*10)//10, (profile*10)%10, aa)).T
+
             vals = np.loadtxt(dpath +'/uvbg/scatter_n{:02d}_ap{:1.0f}p{:1.0f}_{:6.4f}.txt'.format(ncube, \
                                                                                                 (profile*10)//10, (profile*10)%10, aa)).T
             for i in [3, 4, 5, 6, 7]: vals[i] = vals[i]/vals[i].mean() -1
@@ -455,7 +463,11 @@ def make_bgamma_plot():
 
     # and finish up.
     plt.tight_layout()
-    plt.savefig(figpath + 'uvbg_bgamma_n{:02d}.pdf'.format(ncube))
+    if stellarfunc:
+        plt.savefig(figpath + 'uvbg_bgammax_n{:02d}.pdf'.format(ncube))
+    else:
+        plt.savefig(figpath + 'uvbg_bgamma_n{:02d}.pdf'.format(ncube))
+
     #
 
 
@@ -483,6 +495,8 @@ def make_crossratio_plot():
         pm = ph1fid[3]
         
         puvstar = np.loadtxt(dpath + 'uvbg/UVbg_star_bias_{:.4f}.txt'.format(aa)).T
+        if stellarfunc:
+            puvstar = np.loadtxt(dpath + 'uvbg/UVbg_starx_bias_{:.4f}.txt'.format(aa)).T
         puv = np.loadtxt(dpath + 'uvbg/UVbg_bias_{:.4f}.txt'.format(aa)).T
 
         mpath = mfpathz(zz)
@@ -506,6 +520,8 @@ def make_crossratio_plot():
             #
             ap = 'ap{:1.0f}p{:1.0f}'.format((profile*10)//10, (profile*10)%10)
             ph1uvstar = np.loadtxt(dpath + 'uvbg/HI_UVbg_{}_star_bias_{:6.4f}.txt'.format( ap, aa)).T
+            if stellarfunc:
+                ph1uvstar = np.loadtxt(dpath + 'uvbg/HI_UVbg_{}_starx_bias_{:6.4f}.txt'.format( ap, aa)).T
             ph1uv = np.loadtxt(dpath + 'uvbg/HI_UVbg_{}_bias_{:6.4f}.txt'.format( ap, aa)).T
             kmax = 10
             
@@ -573,7 +589,140 @@ def make_crossratio_plot():
 
     # and finish up.
     plt.tight_layout()
-    plt.savefig(figpath + 'uvbg_crossratio_n{:02d}.pdf'.format(ncube))
+    if stellarfunc:
+        plt.savefig(figpath + 'uvbg_crossratiox_n{:02d}.pdf'.format(ncube))
+    else: plt.savefig(figpath + 'uvbg_crossratio_n{:02d}.pdf'.format(ncube))
+    #
+
+
+
+
+
+
+def make_crossratioRg_plot():
+    """"""
+    zlist = [3.5, 4.0, 6.0][:]
+    #zlist = [5.0, 6.0]
+    R = 1.0
+
+    fig, axar = plt.subplots(2, 3, figsize=(10, 4.5), sharex=True, sharey='row')
+    
+
+
+    for iz, zz in enumerate(zlist):
+        
+        print('For redshift = {:.2f}'.format(zz))
+        aa = 1.0/(1.0+zz)
+        ax = axar[:, iz]
+        mpath = mfpathz(zz)
+
+        #
+        ph1fid = np.loadtxt(dpath + '/HI_bias_{:.4f}.txt'.format(aa)).T
+        bfid = ph1fid[1][1:6].mean()
+        k = ph1fid[0]
+        pm = ph1fid[3]
+        
+        puvstar = np.loadtxt(dpath + 'uvbg/UVbg_R{:02.0f}_starx_bias_{:.4f}.txt'.format(R*10, aa)).T
+        if stellarfunc:
+            puvstar = np.loadtxt(dpath + 'uvbg/UVbg_R{:02.0f}_starx_bias_{:.4f}.txt'.format( R*10, aa)).T
+        puv = np.loadtxt(dpath + 'uvbg/UVbg_R{:02.0f}_bias_{:.4f}.txt'.format( R*10, aa)).T
+        #puv = puvstar
+#        
+        for ip, profile in enumerate([2.0, 2.5, 2.9][::-1]):
+
+            #
+            ap = 'ap{:1.0f}p{:1.0f}'.format((profile*10)//10, (profile*10)%10)
+            ph1uvstar = np.loadtxt(dpath + 'uvbg/HI_UVbg_{}_R{:02.0f}_starx_bias_{:6.4f}.txt'.format( ap,  R*10, aa)).T
+            if stellarfunc:
+                ph1uvstar = np.loadtxt(dpath + 'uvbg/HI_UVbg_{}_R{:02.0f}_starx_bias_{:6.4f}.txt'.format( ap,  R*10, aa)).T
+            ph1uv = np.loadtxt(dpath + 'uvbg/HI_UVbg_{}_R{:02.0f}_bias_{:6.4f}.txt'.format( ap, R*10, aa)).T
+            kmax = 20
+            
+            lbl = None
+            #if iz == 2: lbl = r'$\alpha = %.1f$'%profile
+            ax[0].plot(k, ph1uv[1]/ph1fid[1], 'C%d'%ip)
+            ax[1].plot(k, ph1uvstar[1]/ph1fid[1], 'C%d-'%ip, label=lbl)
+
+            for axis in ax: axis.axvline(k[kmax], color='gray', lw=0.2)
+            ax[0].text(0.4, 0.9,"$z=%.1f$"%zz, ha='right', color='k', fontdict=font, alpha=0.5)
+            
+            #Fit
+       
+##            def bfit(bb, k, buv, b, kmax=10):
+##                k,  buv = k[1:kmax],  buv[1:kmax]
+##                #b = b[1:kmax]
+##                bk = b + bb*np.arctan(k*mpath)/k/mpath
+##                return sum((bk-buv)**2)
+##
+##            ftomin = lambda bb: bfit(bb, k, ph1uv[1], bfid, kmax)
+##            bb = minimize(ftomin, [0]).x
+##            ax[0].plot(k, 1+ bb*np.arctan(k*mpath)/k/mpath/bfid, 
+##                       "C%d--"%ip, lw=2, alpha=0.5, label='$b_I = %.2f$'%bb)
+##
+##            ftomin = lambda bb: bfit(bb, k, ph1uvstar[1], bfid, kmax)
+##            bb = minimize(ftomin, [0]).x
+##            ax[1].plot(k, 1+ bb*np.arctan(k*mpath)/k/mpath/bfid, 
+##                       "C%d--"%ip, lw=2, alpha=0.5, label='$b_I = %.2f$'%bb)
+##            print(zz, 'star', bb[0]/bfid)
+##
+
+            def bfit(p, k, buv, kmax=10):
+                b, bb = p
+                k,  buv = k[1:kmax], buv[1:kmax]
+                bk = b + bb*np.arctan(k*mpath)/k/mpath
+                wts = 1
+                return sum((wts*(bk-buv))**2)
+                
+
+            ftomin = lambda bb: bfit(bb, k, ph1uv[1],  kmax)
+            bb = minimize(ftomin, [bfid, 0], method='Nelder-Mead').x
+            #lbl = '$b=%0.2f$'%bb[0]+'\n' +'$b_I = %.2f$'%( bb[1])
+            lbl = '$b_I = %.2f$'%( bb[1])
+            ax[0].plot(k, (bb[0]+ bb[1]*np.arctan(k*mpath)/k/mpath)/bfid, "C%d--"%ip, lw=2, alpha=0.5, label=lbl)
+            print(zz, 'qso change : ', abs(1-bb[0]/bfid)*100)
+
+            ftomin = lambda bb: bfit(bb, k, ph1uvstar[1], kmax)
+            bb = minimize(ftomin, [bfid, 0], method='Nelder-Mead').x
+            #lbl = '$b=%0.2f$'%bb[0]+'\n' +'$b_I = %.2f$'%( bb[1])
+            lbl = '$b_I = %.2f$'%( bb[1])
+            ax[1].plot(k, (bb[0]+ bb[1]*np.arctan(k*mpath)/k/mpath)/bfid, "C%d--"%ip, lw=2, alpha=0.5, label=lbl)
+            print(zz, 'star change : ', abs(1-bb[0]/bfid)*100)
+        
+            
+    ax[0].text(0.012,0.7,"QSO", color='k', fontdict=font, alpha=0.8)
+    ax[1].text(0.012,0.7,"QSO+\nStellar", color='k', fontdict=font, alpha=0.8)
+    
+
+    for axis in axar[1]: axis.set_xlabel(r'$k\quad [h\,{\rm Mpc}^{-1}]$', fontdict=font)
+    for axis in axar[:, 0]: axis.set_ylabel(r'$P_{m{\rm HI}^{\Gamma}}(k) / P_{m{\rm HI}^{\rm fid}}(k)$', fontdict=font)
+    for axis in axar.flatten(): 
+        axis.legend(ncol=1, prop=fontmanage, loc=4, frameon=True)
+        axis.set_xlim(0.01, 0.5)
+        axis.set_xscale('log')
+        #axis.set_yscale('log')
+    handles, labels = axar[1, 2].get_legend_handles_labels()
+    # sort both labels and handles by labels
+    handles = handles[::2] + handles[1::2]
+    labels = labels[::2] + labels[1::2]
+
+    for axis in axar[0]: axis.set_ylim(0.6, 1.05)
+    for axis in axar[1]: axis.set_ylim(0.6, 1.05)
+
+    for axis in axar.flatten():
+        axis.axhline(1, color='k', lw=0.5)
+        for tick in axis.xaxis.get_major_ticks():
+            tick.label.set_fontproperties(fontmanage)
+        for tick in axis.yaxis.get_major_ticks():
+            tick.label.set_fontproperties(fontmanage)
+            tick.label.set_fontproperties(fontmanage)
+            #axis.ticklabel_format(axis='y', style='sci', scilimits=(-2,2))
+
+
+    # and finish up.
+    plt.tight_layout()
+    if stellarfunc:
+        plt.savefig(figpath + 'uvbg_crossratioxRg_n{:02d}.pdf'.format(ncube))
+    else: plt.savefig(figpath + 'uvbg_crossratioRg_n{:02d}.pdf'.format(ncube))
     #
 
 
@@ -713,5 +862,6 @@ if __name__=="__main__":
     #make_bk_scatter_plot()
     #make_bgamma_plot()
     #make_crossratio_plot()
-    make_autoratio_plot()
+    make_crossratioRg_plot()
+    #make_autoratio_plot()
     #

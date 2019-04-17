@@ -143,11 +143,13 @@ def make_quasar_plot(fname, fsize=13):
     zz = 4
     aa = 1/(zz+1)
     lum = np.loadtxt(dpathbig + 'uvbg/Lum_bias_{:.4f}.txt'.format(aa)).T
-    uv = np.loadtxt(dpathbig + 'uvbg/UVbg_bias_{:.4f}.txt'.format(aa)).T
-    uv2 = np.loadtxt(dpathbig + 'uvbg/UVbg_star_bias_{:.4f}.txt'.format(aa)).T
-    h1fid = np.loadtxt(dpathbig + 'HI_bias_{:.4f}.txt'.format(aa)).T
-    h1uv = np.loadtxt(dpathbig + 'uvbg/HI_UVbg_ap2p5_bias_{:.4f}.txt'.format(aa)).T
-    h1uv2 = np.loadtxt(dpathbig + 'uvbg/HI_UVbg_ap2p5_star_bias_{:.4f}.txt'.format(aa)).T
+    #uv = np.loadtxt(dpathbig + 'uvbg/UVbg_bias_{:.4f}.txt'.format(aa)).T
+    #uv2 = np.loadtxt(dpathbig + 'uvbg/UVbg_star_bias_{:.4f}.txt'.format(aa)).T
+    uv = np.loadtxt(dpathbig + 'uvbg/UVbg_R10_bias_{:.4f}.txt'.format(aa)).T
+    uv2 = np.loadtxt(dpathbig + 'uvbg/UVbg_R10_starx_bias_{:.4f}.txt'.format(aa)).T
+    #h1fid = np.loadtxt(dpathbig + 'HI_bias_{:.4f}.txt'.format(aa)).T
+    #h1uv = np.loadtxt(dpathbig + 'uvbg/HI_UVbg_ap2p5_bias_{:.4f}.txt'.format(aa)).T
+    #h1uv2 = np.loadtxt(dpathbig + 'uvbg/HI_UVbg_ap2p5_star_bias_{:.4f}.txt'.format(aa)).T
     k = lum[0]
     ax[1].plot(k, lum[2]**2*lum[3], label='L$_Q$')
     ax[1].plot(k, uv[2]**2*uv[3], label=r'$\Gamma_{\rm QSO}$')
@@ -191,5 +193,5 @@ def make_quasar_plot(fname, fsize=13):
 
 
 if __name__=="__main__":
-    make_mf_plot(figpath + 'MF.pdf')
+    #make_mf_plot(figpath + 'MF.pdf')
     make_quasar_plot(figpath + 'QLF.pdf')
