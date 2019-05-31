@@ -61,8 +61,9 @@ at intensity mapping science, described in more detail in
 We make avaialble halo catalogs and subsampled dark matter particles
 for each simulation for 9 snapshots between z=2 and 6.<P>
 
-Code to read and process these data are avaialble at
-the following GitHub repository.<P>
+Code to read and process these data are avaialble in
+<a href="https://github.com/modichirag/HiddenValleySims">this
+GitHub repository</a>.<P>
 
 Please cite <a href="https://arxiv.org/abs/1904.11923">Modi,
 Castorina, Feng and White (2019)</a> if you make use of these data.
@@ -76,14 +77,22 @@ Castorina, Feng and White (2019)</a> if you make use of these data.
         # printing a word, but these will eventually
         # be links to the actual data.
         #
-        for isim in ["HV10240/F","HV10240/F+","HV10240/F-","HV10240/R"]:
+        for isim in ["HV10240-F","HV10240-Fdn","HV10240-Fup","HV10240-R"]:
             ff.write("<h4>"+isim+"</h4>\n\n")
             ff.write("<UL>\n")
             for zz in zlist:
+                aa = 1.0/(1.0+zz)
                 ff.write("<LI>z={:.1f}\n".format(zz))
                 ff.write("  <UL>\n")
                 for itm in ilist:
-                    ff.write("    <LI>"+itm+"\n")
+                    if itm=="Halos":
+                        link = isim+"_halos_{:06.4f}".format(aa)
+                        if os.path.exists(link):
+                            ff.write("    <LI><a href=\""+link+"\">"+itm+"</a>\n")
+                        else:
+                            ff.write("    <LI>"+itm+"\n")
+                    else:
+                        ff.write("    <LI>"+itm+"\n")
                 ff.write("  </UL>\n")
             #
             ff.write("</UL><P>\n\n")
