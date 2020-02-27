@@ -252,9 +252,9 @@ if __name__=="__main__":
         if rank == 0: print('Creating HI mesh in redshift space')
         h1mesh = HImodelz.createmesh(bs, nc, halocat, cencat, satcat, mode=mode, position='RSDpos', weight='HImass')
 
-        #calc_pk1d(aa, h1mesh, outfolder)
+        calc_pk1d(aa, h1mesh, outfolder)
         calc_pkmu(aa, h1mesh, outfolder, los=los, Nmu=8)
-        #calc_pkll(aa, h1mesh, outfolder, los=los)
+        calc_pkll(aa, h1mesh, outfolder, los=los)
 
         if rank == 0: print('Creating HI mesh in real space for bias')
         h1mesh = HImodelz.createmesh(bs, nc, halocat, cencat, satcat, mode=mode, position='Position', weight='HImass')

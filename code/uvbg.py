@@ -87,7 +87,7 @@ def modulateHI(pos, mfid, uvmesh, layout, alpha, kappa=None):
 
 
 def setupuvmesh(zz, suff, sim, profile, pm, model='ModelA', switchon=0.01, eta=0.1, galscatter=0.3, bhscatter=0.3, lumscatter=0.3, 
-                stellar=False, stellarfluc=False, Rg=0):
+                stellar=False, stellarfluc=False, Rg=0, rsdfac=None):
     
     rank = pm.comm.rank
     aa = 1/(1+zz)
@@ -104,6 +104,8 @@ def setupuvmesh(zz, suff, sim, profile, pm, model='ModelA', switchon=0.01, eta=0
     HImodel = modeldict[model] #HImodels.ModelB
     HImodelz = HImodel(aa)
     halocat['HImass'], cencat['HImass'], satcat['HImass'] = HImodelz.assignHI(halocat, cencat, satcat)
+    if rsdfac is not None: 
+        halocat['RSDpos'], cencat['RSDpos'], satcat['RSDpos'] = HImodelz.assignrsd(rsdfac, halocat, cencat, satcat, los=[0,0,1])
     cmeshfid = pm.paint(cencat['Position'], mass=cencat['HImass'], layout=clayout)
     smeshfid = pm.paint(satcat['Position'], mass=satcat['HImass'], layout=slayout)
     h1meshfid = cmeshfid + smeshfid
@@ -162,8 +164,16 @@ def setupuvmesh(zz, suff, sim, profile, pm, model='ModelA', switchon=0.01, eta=0
     cencat['HIuvmass'] = modulateHI(cencat['Position'], cencat['HImass'], uvmesh, clayout, alpha=profile)
     satcat['HIuvmass'] = modulateHI(satcat['Position'], satcat['HImass'], uvmesh, slayout, alpha=profile)
 
-    cmesh = pm.paint(cencat['Position'], mass=cencat['HIuvmass'], layout=clayout)
-    smesh = pm.paint(satcat['Position'], mass=satcat['HIuvmass'], layout=slayout)
+    if rsdfac is not None:
+        if rank == 0: print('Painting mesh in redshift space')
+        clayout = pm.decompose(cencat['RSDpos'])
+        slayout = pm.decompose(satcat['RSDpos'])
+        cmesh = pm.paint(cencat['RSDpos'], mass=cencat['HIuvmass'], layout=clayout)
+        smesh = pm.paint(satcat['RSDpos'], mass=satcat['HIuvmass'], layout=slayout)
+    else:
+        cmesh = pm.paint(cencat['Position'], mass=cencat['HIuvmass'], layout=clayout)
+        smesh = pm.paint(satcat['Position'], mass=satcat['HIuvmass'], layout=slayout)
+
     h1mesh = cmesh + smesh
     #calc_bias(aa, h1mesh/h1mesh.cmean(), suff, fname='HI_UVbg_ap%dp%d'%((profile*10)//10, (profile*10)%10))
 

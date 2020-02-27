@@ -71,7 +71,7 @@ class ModelA():
         return hrsdpos, crsdpos, srsdpos
 
 
-    def createmesh(self, bs, nc, halocat, cencat, satcat, mode='galaxies', position='RSDpos', weight='HImass'):
+    def createmesh(self, bs, nc, halocat, cencat, satcat, mode='galaxies', position='RSDpos', weight='HImass', tofield=False):
         '''use this to create mesh of HI
         '''
         comm = halocat.comm
@@ -87,7 +87,7 @@ class ModelA():
         allcat = MultipleSpeciesCatalog(['%d'%i for i in range(len(catalogs))], *catalogs)
         mesh = allcat.to_mesh(BoxSize=bs,Nmesh=[nc,nc,nc],\
                                  position=position,weight=weight)
-
+        if tofield: mesh = mesh.to_field()
         return mesh
         
     
@@ -220,7 +220,7 @@ class ModelB():
         return hrsdpos, crsdpos, srsdpos
 
 
-    def createmesh(self, bs, nc, halocat, cencat, satcat, mode='galaxies', position='RSDpos', weight='HImass'):
+    def createmesh(self, bs, nc, halocat, cencat, satcat, mode='galaxies', position='RSDpos', weight='HImass', tofield=False):
         '''use this to create mesh of HI
         '''
         comm = halocat.comm
@@ -237,6 +237,7 @@ class ModelB():
         mesh = allcat.to_mesh(BoxSize=bs,Nmesh=[nc,nc,nc],\
                                  position=position,weight=weight)
 
+        if tofield: mesh = mesh.to_field()
         return mesh
 
 
@@ -410,7 +411,7 @@ class ModelC(ModelA):
         return mcen*0
         
 
-    def createmesh(self, bs, nc, halocat, cencat, satcat, mode='halos', position='RSDpos', weight='HImass'):
+    def createmesh(self, bs, nc, halocat, cencat, satcat, mode='halos', position='RSDpos', weight='HImass', tofield=False):
         '''use this to create mesh of HI
         '''
         comm = halocat.comm
@@ -425,6 +426,7 @@ class ModelC(ModelA):
         mesh = allcat.to_mesh(BoxSize=bs,Nmesh=[nc,nc,nc],\
                                  position=position,weight=weight)
 
+        if tofield: mesh = mesh.to_field()
         return mesh
 
 

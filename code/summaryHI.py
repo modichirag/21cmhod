@@ -15,6 +15,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('-m', '--model', help='model name to use')
 parser.add_argument('-s', '--size', help='for small or big box', default='big')
 parser.add_argument('-a', '--amp', help='amplitude for up/down sigma 8', default=None)
+parser.add_argument('-f', '--fixed', help='fixed sims', default=1)
 args = parser.parse_args()
 if args.model == None:
     print('Specify a model name')
@@ -36,13 +37,14 @@ alist    = [0.1429,0.1538,0.1667,0.1818,0.2000,0.2222,0.2500,0.2857,0.3333]
 
 #Parameters, box size, number of mesh cells, simulation, ...
 if boxsize == 'small':
-    bs, nc, ncsim, sim, prefix = 256, 512, 2560, 'highres/%d-9100-fixed'%2560, 'highres'
+    bs, nc, ncsim, sim, prefix = 256, 512, 2560, 'highres/%d-9100'%2560, 'highres'
 elif boxsize == 'big':
-    bs, nc, ncsim, sim, prefix = 1024, 1024, 10240, 'highres/%d-9100-fixed'%10240, 'highres'
+    bs, nc, ncsim, sim, prefix = 1024, 1024, 10240, 'highres/%d-9100'%10240, 'highres'
 else:
     print('Box size not understood, should be "big" or "small"')
     sys.exit()
 
+if args.fixed == 1: sim += '-fixed'
 if amp is not None:
     if amp == 'up' or amp == 'dn':
         sim = sim + '-%s'%amp
@@ -137,7 +139,8 @@ if __name__=="__main__":
     sn = getsn()
     fsat = getfsat()
     
-    ff = open(dpath + 'summaryHI.txt', 'w')
+    if args.fixed == 1: ff = open(dpath + 'summaryHI.txt', 'w')
+    else: ff = open(dpath + 'summaryHI-R.txt', 'w')
     ff.write("{: >6} {:>12s} {:>6s} {:>12s} {:>6s}\n".format("z", "OmHI", "b1", "SN", "fsat"))
     for i in range(zlist.size):
         ff.write("{:6.2f} {:12.4e} {:6.2f} {:12.4e} {:6.2f}\n".format(zlist[i], omHI[i], b1[i], sn[i], fsat[i]))
