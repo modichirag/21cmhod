@@ -57,19 +57,19 @@ def make_bias_omHI_plot(fname, fsize=10):
 
     #plot bias observation
     bDLA = np.loadtxt("../../data/boss_bDLA.txt")
-    axar[0].errorbar(bDLA[:,0],bDLA[:,1],yerr=bDLA[:,2],fmt='s', label='BOSS', color='m', mfc='None')
-    axar[0].fill_between([1.5,3.5],[1.99-0.11,1.99-0.11],\
+    axar[1].errorbar(bDLA[:,0],bDLA[:,1],yerr=bDLA[:,2],fmt='s', label='BOSS', color='m', mfc='None')
+    axar[1].fill_between([1.5,3.5],[1.99-0.11,1.99-0.11],\
                                  [1.99+0.11,1.99+0.11],\
                        color='lightgrey',alpha=0.5)
 
     #plot omHI observation
     dd = np.loadtxt("../../data/omega_HI_obs.txt")
     #axar[1].errorbar(dd[:,0],1e-3*dd[:,1],yerr=1e-3*dd[:,2],fmt='s',mfc='None', color='m', label="Crighton '15")
-    axar[1].errorbar(dd[:,0],dd[:,1],yerr=dd[:,2],fmt='s',mfc='None', color='m', label="Crighton '15")
+    axar[0].errorbar(dd[:,0],dd[:,1],yerr=dd[:,2],fmt='s',mfc='None', color='m', label="Crighton '15")
     # Plot the fit line.
     zz = np.linspace(0,7,100)
     Ez = np.sqrt( 0.3*(1+zz)**3+0.7 )
-    axar[1].plot(zz,4e-4*(1+zz)**0.6,'k-')
+    axar[0].plot(zz,4e-4*(1+zz)**0.6,'k-')
 
     #Do for models
     for im, model in enumerate(models):
@@ -83,6 +83,7 @@ def make_bias_omHI_plot(fname, fsize=10):
             bbs.append(bias)
             omHI = np.loadtxt(dpath + "HI_dist_{:06.4f}.txt".format(aa)).T
             omHI = (omHI[1]*omHI[2]).sum()/bs**3/27.754e10 *(1+zz)**3 *1e3
+            if im == 1: omHI*(1+3)**3/(1+zz)**3
             omz.append(omHI)
 
         axar[1].plot(zlist, bbs, 'C%d'%im, marker='.', label=model)
@@ -126,8 +127,11 @@ def make_HIdist_plot(fname, fsize=13):
             dist = dist[dist[:,1] !=0]
 
             xx = np.log10(dist[:, 0])
+            if im == 0 or im == 2 : dist[: ,2:] *= (1+zz)**3
+            else: dist[: ,2:] *= (1+3)**3
             axar[0, iz].plot(xx, dist[:, 2], 'C%d'%im, marker='.', label=model, lw=2)
-
+            
+            
             nn = dist[:, 1]
             difflogm = np.diff(np.log(xx))[0]
             print(difflogm)
@@ -158,7 +162,7 @@ def make_HIdist_plot(fname, fsize=13):
     #yaxis
     for axis in axar[0, :]: 
         axis.set_yscale('log')
-        axis.set_ylim(8e4, 1.1e11)
+        axis.set_ylim(8e4, 5e12)
     axar[0, 0].set_ylabel(r'M$\rm _{HI}(M_{\odot}/h)$', fontdict=font)
 
     #for axis in axar[1, :]: 
@@ -182,6 +186,6 @@ def make_HIdist_plot(fname, fsize=13):
 
 
 if __name__=="__main__":
-    make_HIdist_plot(figpath + 'HI_dist_compare.pdf')
-    make_bias_omHI_plot(figpath + 'bias_omHI_compare.pdf')
+    make_HIdist_plot(figpath + 'HI_dist_comparev2.pdf')
+    make_bias_omHI_plot(figpath + 'bias_omHI_comparev2.pdf')
     #

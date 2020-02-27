@@ -99,9 +99,10 @@ def make_calib_plot():
             omHI /= np.sqrt( 0.3*aa**-3+0.7 )**2
             omz.append(omHI)
 
-        ax[1].plot(zlist, omz,'C%do'%im, markersize=4, alpha=0.75)
+        #ax[1].plot(zlist, omz,'C%do'%im, markersize=4, alpha=0.75)
         ss = Spline(zlist, omz)
-        ax[1].plot(np.linspace(2,6,100),ss(np.linspace(2,6,100)),'C%d--'%im)
+        zz = np.linspace(2,6,100)
+        ax[1].plot(zz,ss(zz),'C%d--'%im)
 
     ###################################################################
     # Tidy up the plot.
@@ -190,12 +191,15 @@ def make_calib_full_plot():
     # Read in the data and convert to "normal" OmegaHI convention.
     dd = np.loadtxt("../../data/omega_HI_obs.txt")
     Ez = np.sqrt( 0.3*(1+dd[:,0])**3+0.7 )
-    ax[1].errorbar(dd[:,0],1e-3*dd[:,1]/Ez**2,yerr=1e-3*dd[:,2]/Ez**2,\
+    #ax[1].errorbar(dd[:,0],1e-3*dd[:,1]/Ez**2,yerr=1e-3*dd[:,2]/Ez**2,\
+    #               fmt='s',mfc='None', color='m')
+    ax[1].errorbar(dd[:,0], (1+dd[:,0])**3* 1e-3*dd[:,1]/Ez**2,yerr=(1+dd[:,0])**3 *1e-3*dd[:,2]/Ez**2,\
                    fmt='s',mfc='None', color='m')
     # Plot the fit line.
     zz = np.linspace(0,7,100)
     Ez = np.sqrt( 0.3*(1+zz)**3+0.7 )
-    ax[1].plot(zz,4e-4*(1+zz)**0.6/Ez**2,'k-')
+    #ax[1].plot(zz,4e-4*(1+zz)**0.6/Ez**2,'k-')
+    ax[1].plot(zz,4e-4*(1+zz)**0.6/Ez**2 *(1+zz)**3,'k-')
 
     #data
     # The N-body results.
@@ -208,11 +212,13 @@ def make_calib_full_plot():
             omHI = np.loadtxt(dpath + "HI_dist_{:06.4f}.txt".format(aa)).T
             omHI = (omHI[1]*omHI[2]).sum()/bs**3/27.754e10 *(1+zz)**3
             omHI /= np.sqrt( 0.3*aa**-3+0.7 )**2
+            if im == 1: omHI *= (1+3)**3/(1+zz)**3 # for model B changed the defintion 
             omz.append(omHI)
 
-        ax[1].plot(zlist, omz,'C%do'%im, markersize=4, alpha=0.75, label=model)
+        ax[1].plot(zlist, omz *(1+np.array(zlist))**3,'C%do'%im, markersize=4, alpha=0.75, label=model)
         ss = Spline(zlist, omz)
-        ax[1].plot(np.linspace(2,6,100),ss(np.linspace(2,6,100)),'C%d--'%im)
+        ssz = np.linspace(2,6,100)
+        ax[1].plot(ssz,ss(ssz)*(1+ssz)**3,'C%d--'%im)
 
     ###################################################################
     # Tidy up the plot.
@@ -224,10 +230,12 @@ def make_calib_full_plot():
     ax[0].set_xlim(1.9,3.5)
     ax[0].set_ylim(1.05,2.7)
     ax[1].set_xlim(1,6.25)
-    ax[1].set_ylim(4e-6,3e-4)
-    ax[1].set_yscale('log')
+    #ax[1].set_ylim(4e-6,3e-4)
+    #ax[1].set_ylim(1e-3,5e-3)
+    ax[1].set_ylim(1e-4,6.5e-3)
+    #ax[1].set_yscale('log')
     #ax[0].legend(prop=fontmanage)
-    ax[1].legend(prop=fontmanage)
+    ax[1].legend(prop=fontmanage, frameon=True, loc=1)
     for axis in ax:
         axis.set_xlabel(r'z', fontdict=font)
         for tick in axis.xaxis.get_major_ticks():
@@ -245,7 +253,7 @@ def make_calib_full_plot():
 
     # and finish up.
     plt.tight_layout()
-    plt.savefig(figpath + 'calib_full.pdf')
+    plt.savefig(figpath + 'calib_fullv2.pdf')
     #
 
 
@@ -360,7 +368,7 @@ def make_calib_inset_plot():
 
 
 if __name__=="__main__":
-    make_calib_plot()
-    make_calib_inset_plot()
+    #make_calib_plot() #not updated for (1+z)^3
+    #make_calib_inset_plot() #not updated for (1+z)^3
     make_calib_full_plot()
     #

@@ -62,14 +62,14 @@ polyorder = 3
 
 
 ####################################################
-def volz(z, dz=0.25, sky=20000):
+def volz(z, dz=0.1, sky=20000):
     chiz = cosmo.comoving_distance(z)
     dchiz = cosmo.comoving_distance(z+dz)-cosmo.comoving_distance(z-dz)
     fsky = sky/41252;
     vol = 4*np.pi*chiz**2 * dchiz * fsky
     return vol
 
-def wedge(z, D=6, att='opt'):
+def wedge(z, D=6 *0.7**0.5, att='opt'):
     chiz = cosmo.comoving_distance(z)
     hz = cosmo.efunc(z)*100
     R = chiz*hz/(1+z)/2.99e5
@@ -91,7 +91,7 @@ def thermalnoise(stage2=True, mK=False):
     npol = 2
     S21 = 4 *np.pi* fsky21
     t0 = 5*365*24*60*60
-    Aeff = np.pi* (Ds/2)**2;
+    Aeff = np.pi* (Ds/2)**2 *0.7 #effective
     nu0 = 1420*1e6
     wavez = lambda z: 0.211 *(1 + z)
     chiz = lambda z : cosmo.comoving_distance(z)
@@ -99,7 +99,7 @@ def thermalnoise(stage2=True, mK=False):
     n = lambda D: n0 *(0.4847 - 0.33 *(D/Ls))/(1 + 1.3157 *(D/Ls)**1.5974) * np.exp(-(D/Ls)**6.8390)
     Tb = lambda z: 180/(cosmo.efunc(z)) *(4 *10**-4 *(1 + z)**0.6) *(1 + z)**2*h 
     FOV= lambda z: (1.22* wavez(z)/Ds)**2; #why is Ds here
-    Ts = lambda z: (50 + 2.7 + 25 *(1420/400/(1 + z))**-2.75) * 1000;
+    Ts = lambda z: (55 + 30 + 2.7 + 25 *(1420/400/(1 + z))**-2.75) * 1000;
     u = lambda k, mu, z: k *np.sqrt(1 - mu**2)* chiz(z) /(2* np.pi)#* wavez(z)**2
     #terms
     d2V = lambda z: chiz(z)**2* 3* 10**5 *(1 + z)**2 /cosmo.efunc(z)/100 
@@ -144,7 +144,7 @@ def make_bao_plot(fname):
     Nmus = [int(8), int(20)]
 
 
-    fig,ax = plt.subplots(1,2,figsize=(8.7,4),sharey=True)
+    fig,ax = plt.subplots(1,2,figsize=(9,4),sharey=True)
     ii,jj  = 0,0
 
     for iz, zz in enumerate(zlist):
@@ -213,6 +213,7 @@ def make_bao_plot(fname):
 
         ax[iz].axhline(1, color='k', lw=0.5)
         ax[iz].axhline(1.2, color='k', lw=0.5)
+        ax[iz].text(0.3,1.25,"$z={:.1f}$".format(zz), fontdict=font)
 
         #cosmic variance
         ff = open(dpath + 'HI_pks_1d_{:06.4f}.txt'.format(aa))
@@ -430,6 +431,7 @@ def make_mu_plot(fname):
 ##            ax[1,ii].plot(kk[ww],1/r0,'C2--', lw=1.2)
 ##            ax[2,ii].plot(kk[ww],1/r2,'C3--', lw=1.2)
 ##
+
         #cosmic variance
         ff = open(dpath + 'HI_pks_1d_{:06.4f}.txt'.format(aa))
         tmp = ff.readline()
@@ -437,17 +439,20 @@ def make_mu_plot(fname):
         print(zz, 'shotnoise = ', sn)
         Nk = 4*np.pi*kk**2*np.diff(kk)[0]*bs**3 / (2*np.pi)**3
         Pn, Pn2 = thermalnoise(stage2=False), thermalnoise(stage2=True)
-        cip = ['r', 'g']
+        cip = ['r', 'k']
         for ip, pn in enumerate([Pn, Pn2]):
             for imu, mu in enumerate([mu1, mu2]):
+                if ii == 1 and ip == 0: continue
                 mumin, mumax = mu
                 mux = np.linspace(mumin, mumax).reshape(1,-1)
                 #Nkmu = Nk/2/np.pi*(mumax-mumin)
                 Nkmu = Nk/1*(mumax-mumin)
                 std = ( 2/Nkmu * (sn+pks[imu])**2)**0.5 /pks[imu]
-                ax[imu+1, ii].fill_between(kk, 1-std, 1+std, color='k', alpha=0.1)
+                ax[imu+1, ii].fill_between(kk, 1-std, 1+std, color='g', alpha=0.1)
                 std = ( 2/Nkmu * (sn+pks[imu]+np.trapz(pn(kk.reshape(-1,1), mux, zz), mux)/ (mumax-mumin))**2)**0.5 /pks[imu]
-                ax[imu+1, ii].fill_between(kk, 1-std, 1+std, color=cip[ip], alpha=0.2)
+                #ax[imu+1, ii].fill_between(kk, 1-std, 1+std, color=cip[ip], alpha=0.2)
+                ax[imu+1, ii].plot(kk, 1-std, '--', color=cip[ip], lw=1, alpha=0.7)
+                ax[imu+1, ii].plot(kk, 1+std, '--', color=cip[ip], lw=1, alpha=0.7)
                 #ax[imu+1, ii].plot(kk, 1+std, 'C%d--'%ip)
                 
         
@@ -509,5 +514,5 @@ def make_mu_plot(fname):
 ##
 if __name__=="__main__":
     make_mu_plot(figpath + 'HI_noise_pkmu_%s.pdf'%model)
-    #make_bao_plot(figpath + 'HI_noise_bao_%s.pdf'%model)
+    make_bao_plot(figpath + 'HI_noise_bao_%s.pdf'%model)
     #

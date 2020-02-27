@@ -55,7 +55,7 @@ except: pass
 
 
 ncube = 8
-
+R = 1
 
 def solvequad(a, b, c, plus=True):
     if plus: return (-b + (b**2 - 4*a*c)**0.5) / 2 /a
@@ -333,27 +333,40 @@ def make_bgamma_plot():
         bfid = ph1fid[1][1:6].mean()
         k = ph1fid[0]
         pm = ph1fid[3]
-        plum = np.loadtxt(dpath + 'uvbg/Lum_bias_{:.4f}.txt'.format(aa)).T
-        
-        puvstar = np.loadtxt(dpath + 'uvbg/UVbg_star_bias_{:.4f}.txt'.format(aa)).T
-        if stellarfunc:
-            puvstar = np.loadtxt(dpath + 'uvbg/UVbg_starx_bias_{:.4f}.txt'.format(aa)).T
-        puv = np.loadtxt(dpath + 'uvbg/UVbg_bias_{:.4f}.txt'.format(aa)).T
 
+##        plum = np.loadtxt(dpath + 'uvbg/Lum_bias_{:.4f}.txt'.format(aa)).T        
+##        puvstar = np.loadtxt(dpath + 'uvbg/UVbg_star_bias_{:.4f}.txt'.format(aa)).T
+##        if stellarfunc:
+##            puvstar = np.loadtxt(dpath + 'uvbg/UVbg_starx_bias_{:.4f}.txt'.format(aa)).T
+##        puv = np.loadtxt(dpath + 'uvbg/UVbg_bias_{:.4f}.txt'.format(aa)).T
+##
+        plum = np.loadtxt(dpath + 'uvbg/Lum_R{:02.0f}_bias_{:.4f}.txt'.format(R*10, aa)).T        
+        puvstar = np.loadtxt(dpath + 'uvbg/UVbg_R{:02.0f}_starx_bias_{:.4f}.txt'.format(R*10, aa)).T
+        if stellarfunc:
+            puvstar = np.loadtxt(dpath + 'uvbg/UVbg_R{:02.0f}_starx_bias_{:.4f}.txt'.format( R*10, aa)).T
+        puv = np.loadtxt(dpath + 'uvbg/UVbg_R{:02.0f}_bias_{:.4f}.txt'.format( R*10, aa)).T
+        #puv = puvstar
         #
         
+        profilep = [0.02, 1/8, 1/3]
         for ip, profile in enumerate([2.0, 2.5, 2.9][::-1]):
 
             #
             ap = 'ap{:1.0f}p{:1.0f}'.format((profile*10)//10, (profile*10)%10)
-            ph1uvstar = np.loadtxt(dpath + 'uvbg/HI_UVbg_{}_star_bias_{:6.4f}.txt'.format( ap, aa)).T
+            ph1uvstar = np.loadtxt(dpath + 'uvbg/HI_UVbg_{}_R{:02.0f}_starx_bias_{:6.4f}.txt'.format( ap,  R*10, aa)).T
             if stellarfunc:
-                ph1uvstar = np.loadtxt(dpath + 'uvbg/HI_UVbg_{}_starx_bias_{:6.4f}.txt'.format( ap, aa)).T
-            ph1uv = np.loadtxt(dpath + 'uvbg/HI_UVbg_{}_bias_{:6.4f}.txt'.format( ap, aa)).T
-            
+                ph1uvstar = np.loadtxt(dpath + 'uvbg/HI_UVbg_{}_R{:02.0f}_starx_bias_{:6.4f}.txt'.format( ap,  R*10, aa)).T
+            ph1uv = np.loadtxt(dpath + 'uvbg/HI_UVbg_{}_R{:02.0f}_bias_{:6.4f}.txt'.format( ap, R*10, aa)).T
+
+#            ph1uvstar = np.loadtxt(dpath + 'uvbg/HI_UVbg_{}_star_bias_{:6.4f}.txt'.format( ap, aa)).T
+#            if stellarfunc:
+#                ph1uvstar = np.loadtxt(dpath + 'uvbg/HI_UVbg_{}_starx_bias_{:6.4f}.txt'.format( ap, aa)).T
+#            ph1uv = np.loadtxt(dpath + 'uvbg/HI_UVbg_{}_bias_{:6.4f}.txt'.format( ap, aa)).T
+#            
             lbl0, lbl11, lbl12, lbl13, lbl14 = None, None, None, None, None
             if iz == 0:
-                lbl0 = r'$\alpha = %.1f$'%profile
+                #lbl0 = r'$\alpha = %.1f$'%profile
+                lbl0 = r'$p = %.2f$'%profilep[ip]
                 if ip == 0: lbl11, lbl12, lbl13, lbl14 = 'Cross', 'Auto', 'Scatter', 'Cross'
 
             kmax = 6
@@ -418,13 +431,14 @@ def make_bgamma_plot():
             ax[1].plot(zz, bmean, 'C%ds'%ip, label=lbl12, alpha=0.5)
 
             #Scatter bias
-            valsstar = np.loadtxt(dpath +'/uvbg/scatter_star_n{:02d}_ap{:1.0f}p{:1.0f}_{:6.4f}.txt'.format(ncube, \
-                                                                                                (profile*10)//10, (profile*10)%10, aa)).T
             if stellarfunc:
-                valsstar = np.loadtxt(dpath +'/uvbg/scatter_starx_n{:02d}_ap{:1.0f}p{:1.0f}_{:6.4f}.txt'.format(ncube, \
+                valsstar = np.loadtxt(dpath +'/uvbg/scatter_R{:02.0f}_starx_n{:02d}_ap{:1.0f}p{:1.0f}_{:6.4f}.txt'.format(R*10, ncube, \
                                                                                                 (profile*10)//10, (profile*10)%10, aa)).T
 
-            vals = np.loadtxt(dpath +'/uvbg/scatter_n{:02d}_ap{:1.0f}p{:1.0f}_{:6.4f}.txt'.format(ncube, \
+            else: valsstar = np.loadtxt(dpath +'/uvbg/scatter_R{:02.0f}_star_n{:02d}_ap{:1.0f}p{:1.0f}_{:6.4f}.txt'.format(R*10, ncube, \
+                                                                                                (profile*10)//10, (profile*10)%10, aa)).T
+
+            vals = np.loadtxt(dpath +'/uvbg/scatter_R{:02.0f}_n{:02d}_ap{:1.0f}p{:1.0f}_{:6.4f}.txt'.format(R*10, ncube, \
                                                                                                 (profile*10)//10, (profile*10)%10, aa)).T
             for i in [3, 4, 5, 6, 7]: vals[i] = vals[i]/vals[i].mean() -1
             for i in [3, 4, 5, 6, 7]: valsstar[i] = valsstar[i]/valsstar[i].mean() -1
@@ -434,11 +448,11 @@ def make_bgamma_plot():
             #print('qso, sactter', b1new, bg)
             fit = HuberRegressor().fit(vals[7].reshape(-1, 1), vals[5]-vals[4])
             bg = fit.coef_
-            ax[0].plot(zz, bg, 'C%dx'%ip)
+            ax[0].plot(zz, bg, 'C%dx'%ip, markersize=7)
 
             fit = HuberRegressor(epsilon=2.0).fit(valsstar[7].reshape(-1, 1), valsstar[5]-valsstar[4])
             bg = fit.coef_
-            ax[1].plot(zz, bg, 'C%dx'%ip, label=lbl13)
+            ax[1].plot(zz, bg, 'C%dx'%ip, label=lbl13, markersize=7)
 
     ax[0].text(3.5,-0.49,"QSO", color='k', fontdict=font, alpha=0.8)
     ax[1].text(3.5,-0.49,"QSO+Stellar", color='k', fontdict=font, alpha=0.8)
@@ -860,8 +874,8 @@ def make_autoratio_plot():
 if __name__=="__main__":
     #make_biasauto_plot()
     #make_bk_scatter_plot()
-    #make_bgamma_plot()
+    make_bgamma_plot()
     #make_crossratio_plot()
-    make_crossratioRg_plot()
+    #make_crossratioRg_plot()
     #make_autoratio_plot()
     #

@@ -45,36 +45,37 @@ db = '../../data/outputs/%s/ModelA/'%suff
 tb = '../..//theory/'
 
 
-def thermalnoise(stage2=True, mK=False):
-    fsky21 = 20000/41252;
-    Ns = 256
-    if not stage2: Ns = 32
-    Ds = 6
-    n0 = (Ns/Ds)**2
-    Ls = Ds* Ns
-    npol = 2
-    S21 = 4 *np.pi* fsky21
-    t0 = 5*365*24*60*60
-    Aeff = np.pi* (Ds/2)**2;
-    nu0 = 1420*1e6
-    wavez = lambda z: 0.211 *(1 + z)
-    chiz = lambda z : cosmo.comoving_distance(z)
-    #defintions
-    n = lambda D: n0 *(0.4847 - 0.33 *(D/Ls))/(1 + 1.3157 *(D/Ls)**1.5974) * np.exp(-(D/Ls)**6.8390)
-    Tb = lambda z: 180/(cosmo.efunc(z)) *(4 *10**-4 *(1 + z)**0.6) *(1 + z)**2*h 
-    FOV= lambda z: (1.22* wavez(z)/Ds)**2; #why is Ds here
-    Ts = lambda z: (50 + 2.7 + 25 *(1420/400/(1 + z))**-2.75) * 1000;
-    u = lambda k, mu, z: k *np.sqrt(1 - mu**2)* chiz(z) /(2* np.pi)#* wavez(z)**2
-    #terms
-    d2V = lambda z: chiz(z)**2* 3* 10**5 *(1 + z)**2 /cosmo.efunc(z)/100 
-    fac = lambda z: Ts(z)**2 * S21 / Aeff **2 * (wavez(z))**4 /FOV(z) 
-    # fac = lambda z: Ts(z)**2 * S21 /Aeff **2 * ((1.22 * wavez(z))**2)**2 #/FOV(z)/1.22**4
-    cfac = 1 /t0/ nu0 / npol
-    #
-    if mK:  Pn = lambda k, mu, z: cfac *fac(z) *d2V(z) / (n(u(k, mu, z)) * wavez(z)**2)
-    else: Pn =  lambda k, mu, z: cfac *fac(z) *d2V(z) / (n(u(k, mu, z)) * wavez(z)**2) / Tb(z)**2
-    return Pn
-
+from plot_noise import thermalnoise
+##def thermalnoise(stage2=True, mK=False):
+##    fsky21 = 20000/41252;
+##    Ns = 256
+##    if not stage2: Ns = 32
+##    Ds = 6
+##    n0 = (Ns/Ds)**2
+##    Ls = Ds* Ns
+##    npol = 2
+##    S21 = 4 *np.pi* fsky21
+##    t0 = 5*365*24*60*60
+##    Aeff = np.pi* (Ds/2)**2;
+##    nu0 = 1420*1e6
+##    wavez = lambda z: 0.211 *(1 + z)
+##    chiz = lambda z : cosmo.comoving_distance(z)
+##    #defintions
+##    n = lambda D: n0 *(0.4847 - 0.33 *(D/Ls))/(1 + 1.3157 *(D/Ls)**1.5974) * np.exp(-(D/Ls)**6.8390)
+##    Tb = lambda z: 180/(cosmo.efunc(z)) *(4 *10**-4 *(1 + z)**0.6) *(1 + z)**2*h 
+##    FOV= lambda z: (1.22* wavez(z)/Ds)**2; #why is Ds here
+##    Ts = lambda z: (50 + 2.7 + 25 *(1420/400/(1 + z))**-2.75) * 1000;
+##    u = lambda k, mu, z: k *np.sqrt(1 - mu**2)* chiz(z) /(2* np.pi)#* wavez(z)**2
+##    #terms
+##    d2V = lambda z: chiz(z)**2* 3* 10**5 *(1 + z)**2 /cosmo.efunc(z)/100 
+##    fac = lambda z: Ts(z)**2 * S21 / Aeff **2 * (wavez(z))**4 /FOV(z) 
+##    # fac = lambda z: Ts(z)**2 * S21 /Aeff **2 * ((1.22 * wavez(z))**2)**2 #/FOV(z)/1.22**4
+##    cfac = 1 /t0/ nu0 / npol
+##    #
+##    if mK:  Pn = lambda k, mu, z: cfac *fac(z) *d2V(z) / (n(u(k, mu, z)) * wavez(z)**2)
+##    else: Pn =  lambda k, mu, z: cfac *fac(z) *d2V(z) / (n(u(k, mu, z)) * wavez(z)**2) / Tb(z)**2
+##    return Pn
+##
 
 
 def make_pkr_plot():
@@ -291,9 +292,9 @@ def make_pks_plot():
         ax[2,ii].fill_between(kk[:-1], 1-std22, 1+std22, color='C2',alpha=0.5)
 
         #themal noise
-        Nk *= 0.6 #wedge cut
+        #Nk *= 0.6 #wedge cut
 
-        cip = ['r', 'b']
+        cip = ['k', 'r']
         for ip, Pn in enumerate([thermalnoise(stage2=True), thermalnoise(stage2=False)]):
         #for ip, Pn in enumerate([thermalnoise(stage2=True)]):
             if ii ==1 and ip == 1: continue
@@ -313,8 +314,8 @@ def make_pks_plot():
             integrand = (l0*pk0[:-1].reshape(-1, 1) + l2*pk2[:-1].reshape(-1, 1) + l4*pk4[:-1].reshape(-1, 1) 
                          + sn + pthmu)**2 * l2**2
             std2 = ( 2/Nk *(np.trapz(integrand, muu) * (2*2+1)**2/2) )**0.5 / pk2[:-1]
-            ax[2,ii].plot(kk[:-1], 1-std2,  color=cip[ip],alpha=0.7, lw=0.7, ls="--")
-            ax[2,ii].plot(kk[:-1], 1+std2,  color=cip[ip],alpha=0.7, lw=0.7, ls="--")
+            ax[2,ii].plot(kk[:-1], 1-std2,  color=cip[ip],alpha=0.7, lw=1, ls="--")
+            ax[2,ii].plot(kk[:-1], 1+std2,  color=cip[ip],alpha=0.7, lw=1, ls="--")
         
 
         # put on a line for knl.
