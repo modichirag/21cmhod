@@ -19,7 +19,9 @@ parser.add_argument('-a', '--amp', help='amplitude for up/down sigma 8', default
 parser.add_argument('-p', '--profile', help='slope of profile', default=2.9, type=float)
 parser.add_argument('-n', '--ncube', type=int, default=2, help='number of voxels')
 parser.add_argument('-g', '--galaxy', help='add mean stellar background', default=False, type=bool)
+parser.add_argument('-gx', '--galaxyfluc', help='fluctuate stellar background', default=False, type=bool)
 parser.add_argument('-w', '--splits', help='size of splits to be made in MPT', default=1, type=int)
+parser.add_argument('-r', '--rgauss', help='length of Gaussian kernel to smooth lum', default=0, type=float)
 args = parser.parse_args()
 
 model = args.model 
@@ -29,6 +31,8 @@ profile = args.profile
 ncube = args.ncube
 stellar = args.galaxy
 splits = args.splits
+stellarfluc = args.galaxyfluc
+R = args.rgauss
 
 #
 #Global, fixed things
@@ -88,9 +92,9 @@ if __name__=="__main__":
     gridsmall = pmsmall.generate_uniform_particle_grid(shift=0)
     layoutsmall = pmsmall.decompose(gridsmall)
 
-    for zz in [3.5, 4.0]:
+    for zz in [3.5, 4.0, 5.0, 6.0][::-1]:
         aa = 1/(1+zz)
-        cats, meshes = setupuvmesh(zz, suff=suff, sim=sim, pm=pm, profile=profile, stellar=stellar)
+        cats, meshes = setupuvmesh(zz, suff=suff, sim=sim, pm=pm, profile=profile, stellar=stellar, stellarfluc=stellarfluc, Rg=R)
         cencat, satcat = cats
         h1meshfid, h1mesh, lmesh, uvmesh = meshes
         if ncsim == 10240:
@@ -122,7 +126,8 @@ if __name__=="__main__":
 
                 bi, bj, bk = bindex//ncube**2, (bindex%ncube**2)//ncube, (bindex%ncube**2)%ncube
                 indices[bindex][0], indices[bindex][1] , indices[bindex][2] = bi, bj, bk 
-                print('For rank & index : ', rank, bindex, '-- i, j, k : ', bi, bj, bk)
+
+                if rank == 0: print('For rank & index : ', rank, bindex, '-- i, j, k : ', bi, bj, bk)
 
                 bi *= cube_length
                 bj *= cube_length
@@ -149,7 +154,8 @@ if __name__=="__main__":
             else:
                 pass
             
-
+        print('Finished for rank : ', rank)
+        
         indices = comm.gather(indices, root=0)
         totals = comm.gather(totals, root=0)
 
@@ -162,10 +168,17 @@ if __name__=="__main__":
             header  = 'ix, iy, iz, dm, h1fid, h1new, lum, uv'
             fmt = '%d %d %d %.5e %.5e %.5e %.5e %.5e'
             
+            fname = 'uvbg/scatter_'
+            if R: 
+                fname += 'R%02d_'%(R*10)
+
             if stellar: 
-                fname = outfolder + 'uvbg/scatter_star_n{:02d}_ap{:1.0f}p{:1.0f}_{:6.4f}.txt'.format(ncube, (profile*10)//10, (profile*10)%10, aa)
+                if stellarfluc:
+                    fname = outfolder + fname + 'starx_n{:02d}_ap{:1.0f}p{:1.0f}_{:6.4f}.txt'.format(ncube, (profile*10)//10, (profile*10)%10, aa)
+                else:
+                    fname = outfolder + fname + 'star_n{:02d}_ap{:1.0f}p{:1.0f}_{:6.4f}.txt'.format(ncube, (profile*10)//10, (profile*10)%10, aa)
             else:
-                fname = outfolder + 'uvbg/scatter_n{:02d}_ap{:1.0f}p{:1.0f}_{:6.4f}.txt'.format(ncube, (profile*10)//10, (profile*10)%10, aa)
+                fname = outfolder + fname + 'n{:02d}_ap{:1.0f}p{:1.0f}_{:6.4f}.txt'.format(ncube, (profile*10)//10, (profile*10)%10, aa)
                 
             print('Data saved to file {:s}'.format(fname))
             np.savetxt(fname, tosave, header=header, fmt=fmt)

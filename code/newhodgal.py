@@ -1,3 +1,5 @@
+#maybe poisson sample the number of satellites?
+
 import numpy as np
 from pmesh.pm import ParticleMesh
 from nbodykit.lab import BigFileCatalog, BigFileMesh, FFTPower, ArrayCatalog
@@ -26,9 +28,9 @@ zzfiles = [round(tools.atoz(aa), 2) for aa in aafiles]
 
 #Paramteres
 #Maybe set up to take in as args file?
-#bs, nc, ncsim, sim, prefix = 256, 256, 256, 'lowres/%d-9100-fixed'%256, 'lowres'
-bs, nc, ncsim, sim, prefix = 256, 256, 2560, 'highres/%d-9100-fixed-up'%2560, 'highres'
-#bs, nc, ncsim, sim, prefix = 1024, 1024, 10240, 'highres/%d-9100-fixed-up'%10240, 'highres'
+#bs, nc, ncsim, sim, prefix = 256, 256, 256, 'lowres/%d-9100'%256, 'lowres'
+#bs, nc, ncsim, sim, prefix = 256, 256, 2560, 'highres/%d-9100'%2560, 'highres'
+bs, nc, ncsim, sim, prefix = 1024, 1024, 10240, 'highres/%d-9100'%10240, 'highres'
 
 
 
@@ -64,7 +66,7 @@ def make_galcat(aa, mmin, m1f, alpha=-1, censuff=None, satsuff=None, ofolder=Non
     #Do hod    
     start = time()
     ncen = np.ones_like(hmass)
-    nsat = hod.nsat_martin(msat = mmin, mh=hmass, m1f=m1f, alpha=alpha).astype(int)
+    nsat = hod.nsat_martin(msat = mmin, mh=hmass, m1f=m1f, alpha=alpha).astype(int)  #this needs to be addresseed
     
     #Centrals
     cpos, cvel, gchid, chid = hpos, hvel, ghid, np.arange(ncen.size)
